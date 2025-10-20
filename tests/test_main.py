@@ -1,4 +1,4 @@
-from src.cf.main import greet
+from cf.main import greet
 
 
 def test_greet():

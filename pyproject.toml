@@ -1,5 +1,5 @@
 [project]
-name = "your_project_name"
+name = "crowdfork"
 version = "0.1.0"
 description = "A Python project with uv, ruff, mypy, pytest, and mkdocs."
 authors = [{ name = "Crowd Fork", email = "your.email@example.com" }]
@@ -24,6 +24,12 @@ dev = [
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
 
 # -------------------------
 # Tool configurations below
@@ -55,7 +61,6 @@ disallow_untyped_calls = false
 disallow_untyped_decorators = false
 show_error_codes = true
 namespace_packages = true
-mypy_path = ["src"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

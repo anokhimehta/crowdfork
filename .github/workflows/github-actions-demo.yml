@@ -13,7 +13,6 @@ jobs:
     env:
       UV_CACHE_DIR: ~/.cache/uv
       VENV_DIR: .venv
-      PYTHONPATH: ./src
 
     steps:
       - name: Checkout
@@ -43,7 +42,10 @@ jobs:
           uv --version
 
       - name: Install dependencies with uv
-        run: uv sync --all-extras
+        run: uv sync --all-extras --dev
+
+      - name: Install package in development mode
+        run: uv add --editable .
 
       - name: Ruff format (check)
         run: uv run ruff format --check .
