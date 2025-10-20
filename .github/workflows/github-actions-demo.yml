@@ -52,7 +52,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Mypy
-        run: uv run mypy src/
+        run: uv run mypy .
 
       - name: Pytest with coverage
         run: |
@@ -61,9 +61,6 @@ jobs:
             --cov-report=html \
             --cov-report=xml \
             --junitxml=test-results.xml
-
-      - name: Build documentation (MkDocs)
-        run: uv run mkdocs build
 
       # Artifacts
       - name: Upload JUnit test results

@@ -57,12 +57,12 @@ disallow_untyped_calls = false
 disallow_untyped_decorators = false
 show_error_codes = true
 namespace_packages = true
-mypy_path = ["src"]
+mypy_path = ["."]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "--cov=src --cov-report=term-missing"
-testpaths = ["tests"]
+testpaths = ["."]
 
 [tool.coverage.run]
 branch = true
