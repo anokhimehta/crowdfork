@@ -13,7 +13,6 @@ jobs:
     env:
       UV_CACHE_DIR: ~/.cache/uv
       VENV_DIR: .venv
-      PYTHONPATH: ./src
 
     steps:
       - name: Checkout
@@ -52,11 +51,11 @@ jobs:
         run: uv run ruff check .
 
       - name: Mypy
-        run: uv run mypy src/
+        run: PYTHONPATH=./src uv run mypy src/
 
       - name: Pytest with coverage
         run: |
-          uv run pytest \
+          PYTHONPATH=./src uv run pytest \
             --cov=src \
             --cov-report=html \
             --cov-report=xml \
