@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: your_project_name
+Version: 0.1.0
+Summary: A Python project with uv, ruff, mypy, pytest, and mkdocs.
+Author-email: Crowd Fork <your.email@example.com>
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.31.0
+Provides-Extra: dev
+Requires-Dist: ruff>=0.6.0; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: types-requests; extra == "dev"
+
+# crowdfork
+fork around and find out
