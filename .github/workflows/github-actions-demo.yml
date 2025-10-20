@@ -1,18 +1,83 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: build-and-test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
-  Explore-GitHub-Actions:
+  prereqs:
     runs-on: ubuntu-latest
+
+    env:
+      UV_CACHE_DIR: ~/.cache/uv
+      VENV_DIR: .venv
+      PYTHONPATH: ./src
+
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v5
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Cache uv and virtualenv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.UV_CACHE_DIR }}
+            ${{ env.VENV_DIR }}
+          key: >
+            ${{ runner.os }}-uv-3.10-
+            ${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-3.10-
+
+      - name: Install uv
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          uv --version
+
+      - name: Install dependencies with uv
+        run: uv sync --all-extras
+
+      - name: Ruff format (check)
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Mypy
+        run: uv run mypy src/
+
+      - name: Pytest with coverage
+        run: |
+          uv run pytest \
+            --cov=src \
+            --cov-report=html \
+            --cov-report=xml \
+            --junitxml=test-results.xml
+
+      - name: Build documentation (MkDocs)
+        run: uv run mkdocs build
+
+      # Artifacts
+      - name: Upload JUnit test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-results
+          path: test-results.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload HTML coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov
+          if-no-files-found: warn
+          retention-days: 7
