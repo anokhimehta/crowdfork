@@ -52,7 +52,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Mypy
-        run: uv run mypy /src
+        run: uv run mypy src/
 
       - name: Pytest with coverage
         run: |
