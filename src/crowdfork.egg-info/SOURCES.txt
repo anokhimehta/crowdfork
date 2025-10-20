@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/cf/__init__.py
+src/cf/main.py
+src/crowdfork.egg-info/PKG-INFO
+src/crowdfork.egg-info/SOURCES.txt
+src/crowdfork.egg-info/dependency_links.txt
+src/crowdfork.egg-info/requires.txt
+src/crowdfork.egg-info/top_level.txt
+tests/test_main.py
