@@ -1,0 +1,38 @@
+.cf-btn {
+  background-color: #2e3c8b;  /* your color */
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.cf-btn:hover {
+  background-color: #253278; /* slightly darker hover */
+}
+
+.cf-btn:active {
+  transform: scale(0.98);
+}
+
+.cf-btn:disabled {
+  background-color: #b3b6d1;
+  cursor: not-allowed;
+}
+
+.cf-btn--secondary {
+  background-color: white;
+  color: #2e3c8b;
+  border: 2px solid #2e3c8b;
+}
+
+.cf-btn--secondary:hover {
+  background-color: #f2f3fb;
+}
+
+.cf-btn--block {
+  width: 100%;
+}

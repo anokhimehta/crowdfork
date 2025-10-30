@@ -1,4 +1,5 @@
 // Landing.jsx
+import Button from '../components/Button'
 export default function Landing({ onGetStarted, onLogin }) {
   return (
     <div>
@@ -7,13 +8,15 @@ export default function Landing({ onGetStarted, onLogin }) {
       <p>Discover where the crowd really eats</p>
 
       {/* optional actions */}
-      {onGetStarted && <button onClick={onGetStarted}>Get started</button>}
-      {" "}
-      {onLogin && (
-        <button onClick={onLogin} style={{ background: "transparent" }}>
-          Log in
-        </button>
-      )}
+       <Button onClick={() => alert("Get started clicked!")}>
+        Get Started
+      </Button>
+
+      <br /><br />
+
+      <Button variant="secondary" onClick={() => alert("Log in clicked!")}>
+        Log In
+      </Button>
     </div>
   );
 }
