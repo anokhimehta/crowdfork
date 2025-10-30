@@ -1,18 +1,32 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Landing from './pages/Landing'
+import Login from './pages/Login'
 import './App.css'
 
-const App = () => {
-  const handleGetStarted = () => { /* navigate or open signup */ };
-  const handleLogin = () => { /* navigate to /login */ };
+function AppRoutes() {
+  const navigate = useNavigate();
+
   return (
-    <div>
-      <Landing onGetStarted={handleGetStarted} onLogin={handleLogin} />
-    </div>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <Landing
+            onGetStarted={() => navigate("/signup")} // optional placeholder
+            onLogin={() => navigate("/login")}
+          />
+        }
+      />
+      <Route path="/login" element={<Login />} />
+    </Routes>
   );
 }
 
-
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}

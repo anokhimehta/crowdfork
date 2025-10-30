@@ -8,13 +8,13 @@ export default function Landing({ onGetStarted, onLogin }) {
       <p>Discover where the crowd really eats</p>
 
       {/* optional actions */}
-       <Button onClick={() => alert("Get started clicked!")}>
+       <Button onClick={onGetStarted}>
         Get Started
       </Button>
 
       <br /><br />
 
-      <Button variant="secondary" onClick={() => alert("Log in clicked!")}>
+      <Button variant="secondary" onClick={onLogin}>
         Log In
       </Button>
     </div>
