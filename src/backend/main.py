@@ -14,18 +14,11 @@ app = FastAPI()
 security = HTTPBearer()
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate("serviceAccountKey.json")
+    cred = credentials.Certificate("serviceAccountKey.json") #add your service account key
     firebase_admin.initialize_app(cred)
 
 firebaseConfig = {
-  "apiKey": "AIzaSyDw6RsSAJJr1Xje_i9qln7IRl0jNtn6WOM",
-  "authDomain": "crowdfork-20da3.firebaseapp.com",
-  "projectId": "crowdfork-20da3",
-  "storageBucket": "crowdfork-20da3.firebasestorage.app",
-  "messagingSenderId": "746301898335",
-  "appId": "1:746301898335:web:1dc264ad6d6fdf7212e5ea",
-  "measurementId": "G-MYLWSBY7EH",
-  "databaseURL":""
+ #add your firebase config
 }
 
 firebase = pyrebase.initialize_app(firebaseConfig)
