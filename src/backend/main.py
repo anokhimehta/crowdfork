@@ -1,23 +1,30 @@
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Any
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 import pyrebase
 from models import SignUpSchema, LoginSchema, Review, ReviewResponse, Restaurant, RestaurantResponse, RestaurantUpdate
+from yelp_api_client import search_yelp, YelpSearchResponse, YelpSearchQuery
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime
 import firebaseconfig as firebaseconfig
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 security = HTTPBearer()
 
+# Initialize Firebase Admin SDK
 if not firebase_admin._apps:
     cred = credentials.Certificate("serviceAccountKey.json") #add your service account key
     firebase_admin.initialize_app(cred)
 
+# Initialize Pyrebase for authentication
 firebase = pyrebase.initialize_app(firebaseconfig.firebaseConfig)
 
 # Initialize Firestore
@@ -25,7 +32,9 @@ db = firestore.client()
 
 reviews = []
 
+# --------- Auth Realted Functions ---------
 
+# (Auth) Dependency to get current user from Firebase ID token
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify Firebase ID token and return user info"""
     token = credentials.credentials
@@ -51,19 +60,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed. Please login.",
         )
-
-async def verify_restaurant_exists(restaurant_id: str) -> bool:
-    """Check if restaurant exists in Firestore"""
-    try:
-        restaurant_ref = db.collection('restaurants').document(restaurant_id)
-        restaurant = restaurant_ref.get()
-        return restaurant.exists
-    except Exception as e:
-        print(f"Error checking restaurant: {e}")
-        return False
     
-
-
+# Create a new user account
 @app.post('/signup')
 async def create_an_account(user_data: SignUpSchema):
     email = user_data.email
@@ -81,8 +79,7 @@ async def create_an_account(user_data: SignUpSchema):
             detail=f"Account already created for the email {email}"
         )
 
-
-
+# Create a login token for existing user
 @app.post('/login')
 async def create_access_token(user_data: LoginSchema):
     email = user_data.email
@@ -98,19 +95,51 @@ async def create_access_token(user_data: LoginSchema):
     except:
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
-@app.post('/ping')
+# This might be an unused/unnecssary endpoint, similar to get_current_user
+"""@app.post('/ping')
 async def validate_token(request: Request):
     headers = request.headers
     jwt = headers.get('authorization')
     user = auth.verify_id_token(jwt)
-    return user["uid"]
+    return user["uid"]"""
 
-    
 
 @app.get("/")
 def root():
     return {"Hello": "Worlds"}
 
+# ------------------ Yelp API Integration ---------------------
+
+@app.get("/search/restaurants", response_model=YelpSearchResponse)
+async def search_restaurants_yelp(
+    term: str = Query(..., description="Search term, e.g., 'pizza'"),
+    location: str = Query(..., description="Location, e.g., 'NYC' or 'San Francisco'")
+):
+    """
+    Search for restaurants using the Yelp API.
+    """
+    try:
+        yelp_results = await search_yelp(term=term, location=location, limit=20)
+        return yelp_results
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch from Yelp: {str(e)}"
+        )
+
+# ------- Helper function to verify restaurant existence ----------
+
+async def verify_restaurant_exists(restaurant_id: str) -> bool:
+    """Check if restaurant exists in Firestore"""
+    try:
+        restaurant_ref = db.collection('restaurants').document(restaurant_id)
+        restaurant = restaurant_ref.get()
+        return restaurant.exists
+    except Exception as e:
+        print(f"Error checking restaurant: {e}")
+        return False
+
+# -------------- Crud Operations for Reviews ----------------
 
 @app.post("/restaurants/{restaurant_id}/reviews", response_model=ReviewResponse)
 async def create_review(
@@ -273,8 +302,8 @@ async def list_user_reviews(
             detail=f"Failed to fetch reviews: {str(e)}"
         )
     
-
-@app.post("/reviews", response_model=List[Review])
+# in memory reviews list for testing purpose?? can be removed later
+"""@app.post("/reviews", response_model=List[Review])
 def create_review(review: Review) -> Any:
     reviews.append(review)
     return reviews
@@ -288,11 +317,13 @@ def get_review(review_id: int) -> Any:
     if review_id < len(reviews):
         return reviews[review_id]
     else:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(status_code=404, detail="Item not found")"""
  
 
 
-# ==================== RESTAURANT CRUD OPERATIONS ====================
+# --------------- Crud Operations for Restaurants ----------------
+# Resturant crated in the system, no connection to Yelp API data
+# No authentication required for restaurant operations
 
 @app.post("/restaurants", response_model=RestaurantResponse, status_code=201)
 async def create_restaurant(restaurant: Restaurant):
@@ -329,7 +360,7 @@ async def list_restaurants(
     limit: int = 20,
     cuisine_type: Optional[str] = None
 ):
-    """Get all restaurants (no authentication required for browsing)"""
+    """Get all restaurants from local db (no authentication required for browsing)"""
     
     try:
         query = db.collection('restaurants')
@@ -358,7 +389,7 @@ async def list_restaurants(
 
 @app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
 async def get_restaurant(restaurant_id: str):
-    """Get a specific restaurant by ID"""
+    """Get a specific restaurant by ID from local db (no authentication required)"""
     
     try:
         restaurant_ref = db.collection('restaurants').document(restaurant_id)
@@ -401,7 +432,7 @@ async def update_restaurant(
                 detail="Restaurant not found"
             )
         
-        # Build update data
+        # Build update data from non-None feilds
         update_data = {
             "updated_at": datetime.utcnow().isoformat()
         }
