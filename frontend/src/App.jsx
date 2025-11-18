@@ -1,7 +1,8 @@
-import { useState } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Landing from './pages/Landing'
 import Login from './pages/Login'
+import SignUp from './pages/SignUp'
+import Search from './pages/Search'
 import './App.css'
 
 function AppRoutes() {
@@ -19,6 +20,8 @@ function AppRoutes() {
         }
       />
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/search" element={<Search />} />
     </Routes>
   );
 }
