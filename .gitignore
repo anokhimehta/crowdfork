@@ -1,6 +1,7 @@
 # Backend specific ignores
 src/backend/.env
 src/backend/serviceAccountKey.json
+src/backend/firebaseConfig.js
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
