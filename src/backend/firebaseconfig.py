@@ -8,4 +8,5 @@ firebaseConfig = {
   "messagingSenderId": "190415467960",
   "appId": "1:190415467960:web:e6e432919bd8868181cb4d",
   "measurementId": "G-9QNLG7N50V"
+  
 }
