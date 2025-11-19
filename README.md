@@ -1,7 +1,7 @@
 # crowdfork
 fork around and find out
 
-# Backend Stepup Instructions
+# Backend Setup Instructions
 
 **1. Clone the Repository**
 
