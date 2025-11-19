@@ -17,20 +17,20 @@ fork around and find out
     Secret keys necesary to run the code are not stored on github and must be added manually.
 
     1. Yelp API key
-        A. navigate to *src/backend*
+        A. navigate to src/backend
 
-        B. create a new file called *.env*
+        B. create a new file called .env
 
         C. add your api key in the file:
-            *YELP_API_KEY="instert_real_yelp_key_here"*
+            YELP_API_KEY="instert_real_yelp_key_here"
         
     2. Firebase Service Account 
-        A. make sure you have the *serviceAccountKey.json* for the Firebase Admin SDK 
+        A. make sure you have the serviceAccountKey.json for the Firebase Admin SDK 
 
         B. (Optional) If file not found, generate a new one from:
-         *Firebase Console -> Project Settings -> Service Accounts*
+         Firebase Console -> Project Settings -> Service Accounts
 
-        C. place file in *src/backend* folder and reminder that it must named exactly: *serviceAccountKey.json*
+        C. place file in src/backend folder, named exactly: serviceAccountKey.json
 
 **4. Running the server**
 
