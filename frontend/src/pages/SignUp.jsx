@@ -37,7 +37,6 @@ export default function SignUp() {
     const userData = { email: email, password: pwd };
 
     try {
-      // --- Step 2: API Call to /signup ---
       const response = await fetch(`${API_BASE_URL}/signup`, {
         method: "POST",
         headers: {
@@ -46,25 +45,22 @@ export default function SignUp() {
         body: JSON.stringify(userData),
       });
 
-
     const result = await response.json();
 
       if (response.ok) {
-        // Successful signup (HTTP 201)
+        
         console.log("Account created:", result.message);
         
-        // --- Step 3: Redirect to Login with Success Message ---
+       
         navigate("/login", { 
           state: { msg: "Account successfully created. Please sign in." } 
         });
 
       } else {
-        // Failed signup (HTTP 400 or others)
+       
         const errorMessage = result.detail || "Signup failed. Please try again.";
         setError(errorMessage);
         console.error("Signup Error:", errorMessage);
-        
-        // Ensure loading is reset on failure so user can try again
         setLoading(false);
       }
     } catch (apiError) {

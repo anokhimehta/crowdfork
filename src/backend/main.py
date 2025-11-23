@@ -19,8 +19,9 @@ load_dotenv()
 
 app = FastAPI()
 
+#Since our servers are running on different ports, we need to enable handle CORS
 origins = [
-    "http://localhost:5173", # The URL of your React development server
+    "http://localhost:5173", # Frontend dev server
     "http://127.0.0.1:5173",
 ]
 
