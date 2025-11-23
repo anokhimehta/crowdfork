@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import "./SignUp.css"; // styles below
 
+const API_BASE_URL = "http://localhost:8000"; 
+
 export default function SignUp() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -29,25 +31,51 @@ export default function SignUp() {
       setError(v);
       return;
     }
+    setLoading(true);
+    setError("");
+
+    const userData = { email: email, password: pwd };
+
     try {
-      setLoading(true);
-      setError("");
+      // --- Step 2: API Call to /signup ---
+      const response = await fetch(`${API_BASE_URL}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
 
-      // TODO: replace with your real API call
-      // Simulate API latency
-      await new Promise((r) => setTimeout(r, 600));
 
-      // (Optional) demo persistence; remove when wiring backend
-      const users = JSON.parse(localStorage.getItem("cf_users") || "[]");
-      users.push({ email, pwdHash: `demo-${pwd}` }); // DO NOT store plain passwords in real apps
-      localStorage.setItem("cf_users", JSON.stringify(users));
+    const result = await response.json();
 
-      // Go to login with a success hint
-      navigate("/login", { state: { msg: "Account created. Please sign in." } });
-    } finally {
+      if (response.ok) {
+        // Successful signup (HTTP 201)
+        console.log("Account created:", result.message);
+        
+        // --- Step 3: Redirect to Login with Success Message ---
+        navigate("/login", { 
+          state: { msg: "Account successfully created. Please sign in." } 
+        });
+
+      } else {
+        // Failed signup (HTTP 400 or others)
+        const errorMessage = result.detail || "Signup failed. Please try again.";
+        setError(errorMessage);
+        console.error("Signup Error:", errorMessage);
+        
+        // Ensure loading is reset on failure so user can try again
+        setLoading(false);
+      }
+    } catch (apiError) {
+      // Network failure, CORS issue, etc.
+      console.error("Network Error:", apiError);
+      setError("Could not connect to the server. Please check the API URL.");
       setLoading(false);
-    }
+    } 
   };
+
+
 
   return (
     <div className="cf-signup-wrap">
