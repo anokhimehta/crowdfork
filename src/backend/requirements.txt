@@ -1,0 +1,9 @@
+# Install required packages for the backend
+fastapi
+uvicorn[standard]
+firebase-admin
+pyrebase4
+python-dotenv
+httpx
+setuptools
+
