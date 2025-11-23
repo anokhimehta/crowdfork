@@ -3,6 +3,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import Search from './pages/Search'
+import ReviewForm from './pages/ReviewForm'
 import './App.css'
 
 function AppRoutes() {
@@ -22,6 +23,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/search" element={<Search />} />
+      <Route path="/review" element={<ReviewForm />} />
     </Routes>
   );
 }
