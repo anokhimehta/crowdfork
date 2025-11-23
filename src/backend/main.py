@@ -12,11 +12,28 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime
 import firebaseconfig as firebaseconfig
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = FastAPI()
+
+#Since our servers are running on different ports, we need to enable handle CORS
+origins = [
+    "http://localhost:5173", # Frontend dev server
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,             # Allows specific origins
+    allow_credentials=True,            # Allows cookies and authorization headers
+    allow_methods=["*"],               # Allows all HTTP methods (POST, GET, etc.)
+    allow_headers=["*"],               # Allows all request headers
+)
+
+
 security = HTTPBearer()
 
 # Initialize Firebase Admin SDK
