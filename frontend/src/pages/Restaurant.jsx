@@ -1,7 +1,9 @@
 import React, {useState} from "react";
 import "./Restaurant.css"; // styles below
+import { useNavigate } from "react-router-dom";
 
 export default function Restaurant() {
+    const navigate = useNavigate();
     const [activeImage, setActiveImage] = useState(0);
     const images = [
         "/images/restaurant1.jpg",
@@ -52,57 +54,64 @@ export default function Restaurant() {
                 </div>
                 <div className="header-right">
                     <button className="compare-button">Compare</button>
-                    <button className="review-button" onClick={() => window.location.href = '/review'}>Write a Review</button>
+                    <button 
+                        className="review-button" 
+                        onClick={() => navigate("/review")}
+                        >Write a Review</button>
                 </div>
             </div>
             
             {/* Main Content */}
-            <div className="left-content">
-                {/* Image Gallery */}
-                <div className="image-gallery">
-                    <button className="nav-arrow left-arrow" onClick={() => setActiveImage(Math.max(0, activeImage - 1))}>
-                        ‹
-                    </button>
-                    <div className="image-display">
-                        {images.map((img, index) => (
-                            <div 
-                                key={index} 
-                                className={`image-placeholder ${index === activeImage ? 'active' : ''}`}
-                            >
-                                {img}
-                            </div>
-                        ))}
+            <div className="main-content">
+                <div className="left-content">
+                    {/* Image Gallery */}
+                    <div className="image-gallery">
+                        <button className="nav-arrow left-arrow" onClick={() => setActiveImage(Math.max(0, activeImage - 1))}>
+                            ‹
+                        </button>
+                        <div className="image-display">
+                            {images.map((img, index) => (
+                                <div 
+                                    key={index} 
+                                    className={`image-placeholder ${index === activeImage ? 'active' : ''}`}
+                                >
+                                    {img}
+                                </div>
+                            ))}
+                        </div>
+                        <button className="nav-arrow right-arrow" onClick={() => setActiveImage(Math.min(images.length - 1, activeImage + 1))}>
+                            ›
+                        </button>
                     </div>
-                    <button className="nav-arrow right-arrow" onClick={() => setActiveImage(Math.min(images.length - 1, activeImage + 1))}>
-                        ›
-                    </button>
-                </div>
 
-                {/* Restaurant Description */}
-                <div className="restaurant-info-box">
-                    <div className="info-item">
-                        <span className="info-label">Rating:</span>
-                        <StarRating rating={4.5} />
+                    {/* Restaurant Description */}
+                    <div className="restaurant-info-box">
+                        <div className="info-item">
+                            <span className="info-label">Rating:</span>
+                            <StarRating rating={4.5} />
+                        </div>
+                        <div className="info-item">
+                            <span className="info-label">Hours:</span>
+                            <span className="info-text">Mon-Sun: 11am - 11pm</span>
+                        </div>
+                        <div className="info-item">
+                            <span className="info-label">Address:</span>
+                            <span className="info-text">123 Brooklyn St, Brooklyn, NY</span>
+                        </div>
+                        <div className="info-item">
+                            <span className="info-label">Contact:</span>
+                            <span className="info-text">(123) 456-7890</span>
+                        </div>
                     </div>
-                    <div className="info-item">
-                        <span className="info-label">Hours:</span>
-                        <span className="info-text">Mon-Sun: 11am - 11pm</span>
-                    </div>
-                    <div className="info-item">
-                        <span className="info-label">Address:</span>
-                        <span className="info-text">123 Brooklyn St, Brooklyn, NY</span>
-                    </div>
-                    <div className="info-item">
-                        <span className="info-label">Contact:</span>
-                        <span className="info-text">(123) 456-7890</span>
-                    </div>
-                </div>
-
+                </div>              
+                    
                 {/* Reviews Section */}
                 <div className="right-content">
                     <div className="reviews-header">
                         <h2 className="reviews-title">User Reviews</h2>
-                        <button className="add-review-button">Add a Review</button>
+                        <button className="add-review-button"
+                            onClick={() => navigate("/review")}
+                            >Add a Review</button>
                     </div>
                     <div className="reviews-list">
                         {reviews.map((review) => (
