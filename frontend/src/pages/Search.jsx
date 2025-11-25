@@ -5,6 +5,7 @@ import { api } from "../api";
 
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState("");
+    const [location, setLocation] = useState("NYC");
     const [activeTab, setActiveTab] = useState("home");
     const [restaurants, setRestaurants] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -33,9 +34,11 @@ export default function Search() {
         if (e.key === 'Enter') {
             setLoading(true);
             try {
-                if (searchQuery.trim()) {
+                const locationToUse = location.trim() ? location.trim() : "NYC";
+                const query = searchQuery.trim();
+                if (query) {
                     // For now, using location as default NYC, can be improved later
-                    const data = await api.searchRestaurants(searchQuery, "NYC");
+                    const data = await api.searchRestaurants(searchQuery, locationToUse);
                     setRestaurants(data.businesses || []);
                 } else {
                     loadRestaurants();
@@ -62,14 +65,25 @@ export default function Search() {
 
             {/* Search Bar */}
             <div className="search-bar-container">
-                <input
-                    type="text"
-                    placeholder="Search for restaurants, cuisines, or locations"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleSearch}
-                    className="search-input"
-                />
+                <div className="search-row">
+                    <input
+                        type="text"
+                        placeholder="Search for restaurants, cuisines, or locations"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={handleSearch}
+                        className="search-input main-input"
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        onKeyDown={handleSearch}
+                        className="search-input location-input"
+                    />
+                </div>
             </div>
 
             {/* Main Content */}
