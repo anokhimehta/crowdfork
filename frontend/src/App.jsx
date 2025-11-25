@@ -5,6 +5,7 @@ import SignUp from './pages/SignUp'
 import Search from './pages/Search'
 import ReviewForm from './pages/ReviewForm'
 import Restaurant from './pages/Restaurant'
+import Profile from './pages/Profile'
 import './App.css'
 
 function AppRoutes() {
@@ -26,6 +27,7 @@ function AppRoutes() {
       <Route path="/search" element={<Search />} />
       <Route path="/review" element={<ReviewForm />} />
       <Route path="/restaurant" element={<Restaurant />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   );
 }
