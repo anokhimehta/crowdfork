@@ -1,55 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
+import { api } from "../api";
 
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState("home");
+    const [restaurants, setRestaurants] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
     const localPicks = Array(7).fill(null);
 
-    const trendingRestaurants = [
-        {
-            id: 1,
-            name: 'Restaurant A',
-            cuisine: 'Italian',
-            location: 'New York, NY',
-            review: 'Great food and ambiance!',
-            username: 'foodie123'
-        },
-        {
-            id: 2,
-            name: 'Restaurant B',
-            cuisine: 'Chinese',
-            location: 'San Francisco, CA',
-            review: 'Delicious and authentic flavors.',
-            username: 'cheflover'
-        },
-        {
-            id: 3,
-            name: 'Restaurant C',
-            cuisine: 'Mexican',
-            location: 'Austin, TX',
-            review: 'Amazing tacos and margaritas!',
-            username: 'spicyfan'
-        },
-        {
-            id: 4,
-            name: 'Restaurant D',
-            cuisine: 'Indian',
-            location: 'Chicago, IL',
-            review: 'Aromatic and flavorful dishes.',
-            username: 'curryenthusiast'
+    useEffect(() => {
+        loadRestaurants();
+    }, []);
+
+    const loadRestaurants = async () => {
+        setLoading(true);
+        try {
+            const data = await api.getRestaurants();
+            setRestaurants(data);
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Failed to load restaurants");
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const handleSearch = async (e) => {
+        if (e.key === 'Enter') {
+            setLoading(true);
+            try {
+                if (searchQuery.trim()) {
+                    // For now, using location as default NYC, can be improved later
+                    const data = await api.searchRestaurants(searchQuery, "NYC");
+                    setRestaurants(data.businesses || []);
+                } else {
+                    loadRestaurants();
+                }
+            } catch (err) {
+                console.error(err);
+                setError("Search failed");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
     return (
         <div className="search-container">
             {/* Header */}
             <div className="header">
-                <img 
-                    src={logo} 
-                    alt="CrowdFork Logo" 
+                <img
+                    src={logo}
+                    alt="CrowdFork Logo"
                     className="logo-image"
                 />
             </div>
@@ -61,6 +67,7 @@ export default function Search() {
                     placeholder="Search for restaurants, cuisines, or locations"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleSearch}
                     className="search-input"
                 />
             </div>
@@ -76,23 +83,25 @@ export default function Search() {
                         ))}
                     </div>
                 </div>
-                
+
                 {/* Trending Restaurants Section */}
                 <div className="trending-section">
                     <h2 className="section-title">Trending This Week</h2>
                     <div className="restaurant-grid">
-                        {trendingRestaurants.map((restaurant) => (
+                        {loading && <p>Loading...</p>}
+                        {error && <p className="error-message">{error}</p>}
+                        {!loading && !error && restaurants.map((restaurant) => (
                             <div key={restaurant.id} className="restaurant-card">
-                                <div className="restaurant-image" />
+                                <div className="restaurant-image" style={{ backgroundImage: `url(${restaurant.image_url || ''})` }} />
                                 <div className="restaurant-info">
                                     <h3 className="restaurant-name">
                                         {restaurant.name}
                                     </h3>
                                     <p className="restaurant-location">
-                                        {restaurant.cuisine} - {restaurant.location}
+                                        {restaurant.cuisine_type || (restaurant.categories && restaurant.categories[0]?.title)} - {restaurant.address || (restaurant.location && restaurant.location.address1)}
                                     </p>
                                     <p className="restaurant-review">
-                                        "{restaurant.review}" - {restaurant.username}
+                                        {restaurant.rating ? `Rating: ${restaurant.rating}` : "No rating yet"}
                                     </p>
                                 </div>
                             </div>

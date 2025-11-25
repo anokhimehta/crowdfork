@@ -123,6 +123,8 @@
   height: 96px;
   background-color: #9ca3af;
   border-radius: 8px;
+  background-size: cover;
+  background-position: center;
 }
 
 .restaurant-info {

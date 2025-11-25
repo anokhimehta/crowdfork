@@ -36,6 +36,7 @@ class YelpBusiness(BaseModel):
     coordinates: Dict[str, float]
     location: Dict[str, Any]
     url: Optional[str] = None
+    categories: List[Dict[str, str]] = []
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):

@@ -17,6 +17,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+
+# Add CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "http://localhost:5173",  # Vite default port
+    "http://127.0.0.1:5173",
+    "*" # Allow all for now to be safe
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 security = HTTPBearer()
 
 # Initialize Firebase Admin SDK
@@ -363,23 +381,50 @@ async def list_restaurants(
     """Get all restaurants from local db (no authentication required for browsing)"""
     
     try:
-        query = db.collection('restaurants')
-        
-        # Filter by cuisine type if provided
-        if cuisine_type:
-            query = query.where('cuisine_type', '==', cuisine_type)
-        
-        query = query.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit)
-        
-        restaurants = []
-        for doc in query.stream():
-            restaurant_data = doc.to_dict()
-            restaurants.append(RestaurantResponse(
-                id=doc.id,
-                **restaurant_data
-            ))
-        
-        return restaurants
+        try:
+            query = db.collection('restaurants')
+            
+            # Filter by cuisine type if provided
+            if cuisine_type:
+                query = query.where('cuisine_type', '==', cuisine_type)
+            
+            query = query.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit)
+            
+            restaurants = []
+            for doc in query.stream():
+                restaurant_data = doc.to_dict()
+                restaurants.append(RestaurantResponse(
+                    id=doc.id,
+                    **restaurant_data
+                ))
+            
+            return restaurants
+        except Exception as db_error:
+            print(f"Firestore error: {db_error}. Falling back to Yelp.")
+            # Fallback to Yelp
+            yelp_results = await search_yelp(term="restaurants", location="NYC", limit=limit)
+            
+            mapped_restaurants = []
+            for business in yelp_results.businesses:
+                # Map Yelp business to RestaurantResponse
+                address = ", ".join(business.location.get("display_address", []))
+                cuisine = "Unknown"
+                if business.categories:
+                    cuisine = business.categories[0].get("title", "Unknown")
+                
+                mapped_restaurants.append(RestaurantResponse(
+                    id=business.id,
+                    name=business.name,
+                    address=address,
+                    cuisine_type=cuisine,
+                    description=f"Rating: {business.rating}",
+                    phone=business.phone,
+                    image_url=business.image_url,
+                    created_at=datetime.utcnow().isoformat(),
+                    updated_at=datetime.utcnow().isoformat()
+                ))
+            return mapped_restaurants
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
