@@ -1,5 +1,10 @@
 /* src/pages/Search.css */
 
+.search-bar-container {
+  position: relative;
+  padding: 0 1.5rem 1.5rem;
+}
+
 .search-row {
   display: flex;
   gap: 1rem;
@@ -21,6 +26,80 @@
   flex: 1;
   padding: 12px 16px;
   border: 2px solid #d1d5db;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 1.5rem;
+  right: 1.5rem;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suggestion-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+  gap: 1rem;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: #f9fafb;
+}
+
+.suggestion-item:active {
+  background-color: #f3f4f6;
+}
+
+/* Custom Scrollbar for Suggestions */
+.suggestions-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.suggestions-dropdown::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.suggestions-dropdown::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 10px;
+}
+
+.suggestions-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #a5b4fc;
+}
+
+/* No Results */
+.no-results {
+  padding: 1.5rem;
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
 }
 
 @media (max-width: 600px) {

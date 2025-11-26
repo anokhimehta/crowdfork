@@ -50,7 +50,7 @@ db = firestore.client()
 
 reviews = []
 
-# --------- Auth Realted Functions ---------
+# --------- Auth Related Functions ---------
 
 # (Auth) Dependency to get current user from Firebase ID token
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
