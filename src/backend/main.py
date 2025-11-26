@@ -46,9 +46,7 @@ security = HTTPBearer()
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
-    cred = credentials.Certificate(
-        "serviceAccountKey.json"
-    )  # add your service account key
+    cred = credentials.Certificate("serviceAccountKey.json")  # add your service account key
     firebase_admin.initialize_app(cred)
 
 # Initialize Pyrebase for authentication
@@ -115,9 +113,7 @@ async def create_access_token(user_data: LoginSchema):
     email = user_data.email
     password = user_data.password
     try:
-        user = firebase.auth().sign_in_with_email_and_password(
-            email=email, password=password
-        )
+        user = firebase.auth().sign_in_with_email_and_password(email=email, password=password)
 
         token = user["idToken"]
         return JSONResponse(content={"token": token}, status_code=200)
@@ -154,9 +150,7 @@ async def search_restaurants_yelp(
         yelp_results = await search_yelp(term=term, location=location, limit=20)
         return yelp_results
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}")
 
 
 # ------- Helper function to verify restaurant existence ----------
@@ -191,9 +185,7 @@ async def create_review(
 
     # Check if restaurant exists
     if not await verify_restaurant_exists(restaurant_id):
-        raise HTTPException(
-            status_code=404, detail=f"Restaurant with ID {restaurant_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Restaurant with ID {restaurant_id} not found")
 
     # Validate rating
     if review.rating < 0 or review.rating > 5:
@@ -215,9 +207,7 @@ async def create_review(
 
         return ReviewResponse(id=review_id, **review_data)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create review: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create review: {str(e)}")
 
 
 @app.delete("/reviews/{review_id}")
@@ -235,28 +225,20 @@ async def delete_review(review_id: str, current_user: dict = Depends(get_current
 
         # Check if the current user is the author of the review
         if review_data["user_id"] != current_user["user_id"]:
-            raise HTTPException(
-                status_code=403, detail="You can only delete your own reviews"
-            )
+            raise HTTPException(status_code=403, detail="You can only delete your own reviews")
 
         # Delete the review
         review_ref.delete()
 
-        return JSONResponse(
-            content={"message": "Review deleted successfully"}, status_code=200
-        )
+        return JSONResponse(content={"message": "Review deleted successfully"}, status_code=200)
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to delete review: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}")
 
 
 @app.get("/users/me/reviews", response_model=List[ReviewResponse])
-async def list_user_reviews(
-    limit: int = 10, current_user: dict = Depends(get_current_user)
-):
+async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
     """Get all reviews by the current logged-in user"""
 
     try:
@@ -275,21 +257,16 @@ async def list_user_reviews(
 
         return reviews
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch reviews: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
 
 
 @app.get("/restaurant/{restaurant_id}/reviews", response_model=List[ReviewResponse])
 async def list_user_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
-
     # Check if restaurant exists
     if not await verify_restaurant_exists(restaurant_id):
-        raise HTTPException(
-            status_code=404, detail=f"Restaurant with ID {restaurant_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Restaurant with ID {restaurant_id} not found")
 
     """Get all reviews by the current logged-in user"""
 
@@ -309,9 +286,7 @@ async def list_user_reviews(
 
         return reviews
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch reviews: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
 
 
 # in memory reviews list for testing purpose?? can be removed later
@@ -358,9 +333,7 @@ async def create_restaurant(restaurant: Restaurant):
 
         return RestaurantResponse(id=restaurant_id, **restaurant_data)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create restaurant: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}")
 
 
 @app.get("/restaurants", response_model=List[RestaurantResponse])
@@ -374,9 +347,7 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
         if cuisine_type:
             query = query.where("cuisine_type", "==", cuisine_type)
 
-        query = query.order_by(
-            "created_at", direction=firestore.Query.DESCENDING
-        ).limit(limit)
+        query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
 
         restaurants = []
         for doc in query.stream():
@@ -385,9 +356,7 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
 
         return restaurants
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch restaurants: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}")
 
 
 @app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -406,9 +375,7 @@ async def get_restaurant(restaurant_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch restaurant: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}")
 
 
 @app.put("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -447,9 +414,7 @@ async def update_restaurant(restaurant_id: str, restaurant_update: RestaurantUpd
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to update restaurant: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}")
 
 
 @app.delete("/restaurants/{restaurant_id}")
@@ -464,9 +429,7 @@ async def delete_restaurant(restaurant_id: str):
             raise HTTPException(status_code=404, detail="Restaurant not found")
 
         # Delete all reviews associated with this restaurant first
-        reviews_ref = db.collection("reviews").where(
-            "restaurant_id", "==", restaurant_id
-        )
+        reviews_ref = db.collection("reviews").where("restaurant_id", "==", restaurant_id)
         for review in reviews_ref.stream():
             review.reference.delete()
 
@@ -474,14 +437,10 @@ async def delete_restaurant(restaurant_id: str):
         restaurant_ref.delete()
 
         return JSONResponse(
-            content={
-                "message": "Restaurant and associated reviews deleted successfully"
-            },
+            content={"message": "Restaurant and associated reviews deleted successfully"},
             status_code=200,
         )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to delete restaurant: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}")

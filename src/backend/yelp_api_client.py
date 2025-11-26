@@ -24,9 +24,7 @@ class YelpSearchQuery(BaseModel):
     """Pydantic model for Yelp search query parameters"""
 
     term: str = Field(..., description="Search term, e.g., 'pizza' or 'coffee'")
-    location: str = Field(
-        ..., description="Location to search, e.g., 'New York City' or 'NYC'"
-    )
+    location: str = Field(..., description="Location to search, e.g., 'New York City' or 'NYC'")
     limit: int = 20
 
 
