@@ -54,5 +54,20 @@ export const api = {
             throw new Error(errorData.detail || "Failed to fetch restaurants");
         }
         return response.json();
+    },
+
+    async getAutoCompleteSuggestions(query) {
+        if (!query || query.trim() === "") {
+            return [];  // frontend expects an array
+        }
+
+        let url = `${API_BASE_URL}/autocomplete/restaurants?text=${encodeURIComponent(query)}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to fetch autocomplete suggestions");
+        }
+        return response.json();
     }
 };

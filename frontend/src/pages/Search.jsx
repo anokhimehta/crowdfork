@@ -1,17 +1,60 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
 import { api } from "../api";
 
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchSuggestions, setSearchSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [location, setLocation] = useState("NYC");
     const [activeTab, setActiveTab] = useState("home");
     const [restaurants, setRestaurants] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const suggestionsRef = useRef(null);
 
     const localPicks = Array(7).fill(null);
+
+    //when user starts typing, show suggestions
+    useEffect(() => {
+        if (searchQuery.trim() === "") {
+            setSearchSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const fetchSuggestions = async () => {
+            try {
+                const data = await api.getAutoCompleteSuggestions(searchQuery);
+                const suggestions = (data.terms || []).map(t => 
+                    ({ value: t.text })
+                );
+                setSearchSuggestions(suggestions);
+                setShowSuggestions(true);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        const delayDebounce = setTimeout(fetchSuggestions, 250); // debounce typing
+        return () => clearTimeout(delayDebounce);
+    }, [searchQuery]);  
+
+
+    //when user clicks outside suggestions box, hide suggestions
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }   
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [suggestionsRef]);
 
     useEffect(() => {
         loadRestaurants();
@@ -37,7 +80,6 @@ export default function Search() {
                 const locationToUse = location.trim() ? location.trim() : "NYC";
                 const query = searchQuery.trim();
                 if (query) {
-                    // For now, using location as default NYC, can be improved later
                     const data = await api.searchRestaurants(searchQuery, locationToUse);
                     setRestaurants(data.businesses || []);
                 } else {
@@ -52,8 +94,26 @@ export default function Search() {
         }
     };
 
+    const handleSuggestionClick = (suggestion) => {
+        setSearchQuery(suggestion.value);
+        setShowSuggestions(false);
+
+        setLoading(true);
+        api.searchRestaurants(suggestion.value, location.trim() ? location.trim() : "NYC")
+            .then((data) => {
+                setRestaurants(data.businesses || []);
+            })
+            .catch((err) => {
+                console.error(err);
+                setError("Search failed");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    };
+
     return (
-        <div className="search-container">
+        <div className="search-container" ref={suggestionsRef}>
             {/* Header */}
             <div className="header">
                 <img
@@ -71,7 +131,12 @@ export default function Search() {
                         placeholder="Search for restaurants, cuisines, or locations"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={handleSearch}
+                        onFocus={() => searchQuery && setShowSuggestions(true)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                handleSearch(e);
+                            }
+                        }}
                         className="search-input main-input"
                     />
 
@@ -84,6 +149,29 @@ export default function Search() {
                         className="search-input location-input"
                     />
                 </div>
+
+                {showSuggestions && searchSuggestions.length > 0 && (
+                    <ul className="suggestions-dropdown">
+                        {searchSuggestions.map((suggestion, index) => (
+                            <li
+                                key={index}
+                                className="suggestion-item"
+                                onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                                <span className="suggestion-text">{suggestion.value}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                {/* no results */}
+                {showSuggestions && searchSuggestions.length === 0 && (
+                    <ul className="suggestions-dropdown">
+                        <li className="no-suggestion-item">
+                            <span className="suggestion-text">No suggestions found</span>
+                        </li>
+                    </ul>
+                )}
             </div>
 
             {/* Main Content */}
