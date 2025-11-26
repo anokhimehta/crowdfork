@@ -145,6 +145,26 @@ async def search_restaurants_yelp(
             detail=f"Failed to fetch from Yelp: {str(e)}"
         )
 
+@app.get("/recommendations/nearby", response_model=YelpSearchResponse)
+async def get_local_picks(
+    latitude: float,
+    longitude: float,
+    limit: int = 10
+):
+    """
+    Local Picks - gets highly rated places nearby without a search term.
+    """
+    try:
+        # We call search_yelp but without a 'term', and sort by rating
+        return await search_yelp(
+            latitude=latitude, 
+            longitude=longitude, 
+            sort_by="rating",
+            limit=limit
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
 async def autocomplete_restaurants_yelp(
     text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
@@ -152,7 +172,7 @@ async def autocomplete_restaurants_yelp(
     longitude: Optional[float] = Query(None, description="Longitude for location biasing")
 ):
     """
-    Autocomplete keywords/resturant names using the Yelp API.
+    Autocomplete keywords/category/resturant names using the Yelp API.
     """
     try:
         yelp_results = await autocomplete_yelp(text=text, latitude=latitude, longitude=longitude)
