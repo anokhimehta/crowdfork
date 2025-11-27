@@ -260,7 +260,7 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
         raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
 
 
-@app.get("/restaurant/{restaurant_id}/reviews", response_model=List[ReviewResponse])
+@app.get("/restaurants/{restaurant_id}/reviews", response_model=List[ReviewResponse])
 async def list_user_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
