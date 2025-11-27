@@ -73,14 +73,6 @@ export default function Profile() {
           <p className="stat-number">{user.reviewCount}</p>
           <p className="stat-label">Reviews</p>
         </div>
-        <div className="stat-card">
-          <p className="stat-number">{user.followersCount}</p>
-          <p className="stat-label">Followers</p>
-        </div>
-        <div className="stat-card">
-          <p className="stat-number">{user.followingCount}</p>
-          <p className="stat-label">Following</p>
-        </div>
       </div>
 
       {/* Editable Fields Section */}
@@ -160,12 +152,7 @@ export default function Profile() {
       )}
 
       {/* Action Buttons */}
-      {!isEditing && (
-        <div className="profile-actions">
-          <button className="action-button primary">Follow</button>
-          <button className="action-button secondary">Message</button>
-        </div>
-      )}
+    
     </div>
   );
 }
