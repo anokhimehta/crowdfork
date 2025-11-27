@@ -11,6 +11,7 @@ load_dotenv()
 YELP_API_KEY = os.getenv("YELP_API_KEY")
 YELP_API_HOST = "https://api.yelp.com"
 SEARCH_PATH = "/v3/businesses/search"
+AUTOCOMPLETE_PATH = "/v3/autocomplete"
 
 # Warn if API key is not set
 if not YELP_API_KEY:
@@ -42,6 +43,7 @@ class YelpBusiness(BaseModel):
     coordinates: Dict[str, float]
     location: Dict[str, Any]
     url: Optional[str] = None
+    categories: List[Dict[str, str]] = []
 
 
 # Response model for Yelp search
@@ -50,6 +52,11 @@ class YelpSearchResponse(BaseModel):
     total: int
     region: Dict[str, Any]
 
+# Response model for Yelp autocomplete
+class YelpAutocompleteResponse(BaseModel):
+    terms: List[Dict[str, str]]
+    businesses: List[Dict[str, Any]]
+    categories: List[Dict[str, Any]]
 
 # Function to search Yelp API
 async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchResponse:
@@ -61,6 +68,20 @@ async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchRe
     data = response.json()
     return YelpSearchResponse(**data)
 
+async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitude: Optional[float] = None) -> YelpAutocompleteResponse:
+    url = f"{YELP_API_HOST}{AUTOCOMPLETE_PATH}"
+    headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
+
+    params = {"text": text}
+    if latitude is not None and longitude is not None:
+        params["latitude"] = latitude
+        params["longitude"] = longitude
+
+    #async with httpx.AsyncClient() as client:
+    response = httpx.get(url, headers=headers, params=params)
+    response.raise_for_status()
+    data = response.json()
+    return YelpAutocompleteResponse(**data)      
 
 # Example usage
 if __name__ == "__main__":

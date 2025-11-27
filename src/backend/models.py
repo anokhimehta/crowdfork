@@ -52,7 +52,8 @@ class Restaurant(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
-
+    image_url: Optional[str] = None
+    
     class Config:
         json_schema_extra = {
             "example": {
@@ -61,6 +62,7 @@ class Restaurant(BaseModel):
                 "cuisine_type": "Italian",
                 "description": "Best pizza in town!",
                 "phone": "+1-555-0123",
+                "image_url": "http://example.com/image.jpg"
             }
         }
 
@@ -72,6 +74,7 @@ class RestaurantResponse(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -82,3 +85,4 @@ class RestaurantUpdate(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
+    image_url: Optional[str] = None

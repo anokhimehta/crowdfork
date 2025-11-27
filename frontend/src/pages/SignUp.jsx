@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
+import { api } from "../api";
 import "./SignUp.css"; // styles below
-
-const API_BASE_URL = "http://localhost:8000"; 
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -31,47 +30,20 @@ export default function SignUp() {
       setError(v);
       return;
     }
-    setLoading(true);
-    setError("");
-
-    const userData = { email: email, password: pwd };
-
     try {
-      const response = await fetch(`${API_BASE_URL}/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      });
+      setLoading(true);
+      setError("");
 
-    const result = await response.json();
+      await api.signup(email, pwd);
 
-      if (response.ok) {
-        
-        console.log("Account created:", result.message);
-        
-       
-        navigate("/login", { 
-          state: { msg: "Account successfully created. Please sign in." } 
-        });
-
-      } else {
-       
-        const errorMessage = result.detail || "Signup failed. Please try again.";
-        setError(errorMessage);
-        console.error("Signup Error:", errorMessage);
-        setLoading(false);
-      }
-    } catch (apiError) {
-      // Network failure, CORS issue, etc.
-      console.error("Network Error:", apiError);
-      setError("Could not connect to the server. Please check the API URL.");
+      // Go to login with a success hint
+      navigate("/login", { state: { msg: "Account created. Please sign in." } });
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-    } 
+    }
   };
-
-
 
   return (
     <div className="cf-signup-wrap">
