@@ -1,10 +1,18 @@
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import Button from "../components/Button";
+import "./Login.css";
+
+const API_BASE_URL = "http://localhost:8000"; 
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); 
+
+  // initialize navigate from react-router
   const navigate = useNavigate();
 
   const onSubmit = async (e) => {

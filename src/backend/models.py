@@ -1,17 +1,16 @@
 from pydantic import BaseModel
 from typing import Optional, List, Any
 
+
 class SignUpSchema(BaseModel):
     email: str
     password: str
-    
+
     class Config:
         json_schema_extra = {
-            "example": {
-                "email":"sample@gmail.com",
-                "password":"samplepassword123"
-            }
+            "example": {"email": "sample@gmail.com", "password": "samplepassword123"}
         }
+
 
 class LoginSchema(BaseModel):
     email: str
@@ -19,23 +18,21 @@ class LoginSchema(BaseModel):
 
     class Config:
         json_schema_extra = {
-            "example": {
-                "email":"sample@gmail.com",
-                "password":"samplepassword123"
-            }
+            "example": {"email": "sample@gmail.com", "password": "samplepassword123"}
         }
+
 
 class Review(BaseModel):
     restaurant_id: str
     rating: float
     text: Optional[str] = None
-    
+
     class Config:
         json_schema_extra = {
             "example": {
                 "restaurant_id": "rest_123",
                 "rating": 4.5,
-                "text": "Great food and service!"
+                "text": "Great food and service!",
             }
         }
 
@@ -47,7 +44,6 @@ class ReviewResponse(BaseModel):
     rating: float
     text: Optional[str] = None
     created_at: str
-
 
 
 class Restaurant(BaseModel):

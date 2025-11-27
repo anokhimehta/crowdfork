@@ -1,0 +1,283 @@
+/* Container */
+.review-form-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: white;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.review-header {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  color: #374151;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: #000;
+}
+
+.restaurant-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  flex: 1;
+  color: #111827;
+}
+
+/* User Info */
+.user-info {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  gap: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  background-color: #d1d5db;
+  border-radius: 50%;
+}
+
+.user-name {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* Form Content */
+.form-content-horizontal {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 3rem;
+  padding: 2rem;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Star Ratings */
+.star-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background-color: #f9fafb;
+  padding: 2rem;
+  border-radius: 12px;
+}
+
+.rating-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rating-label {
+  font-size: 1rem;
+  font-weight: 500;
+  min-width: 140px;
+  color: #374151;
+}
+
+.stars {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.star-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.star-button.filled {
+  color: #fbbf24;
+}
+
+.star-button:hover {
+  color: #fbbf24;
+  transform: scale(1.1);
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Text Inputs */
+.review-textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+  font-family: inherit;
+  min-height: 120px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.review-textarea:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.review-textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Add Media Button */
+.add-photos-button {
+  width: 100%;
+  padding: 1rem;
+  background-color: #c7d2fe;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.add-photos-button:hover {
+  background-color: #a5b4fc;
+  transform: translateY(-1px);
+}
+
+.media-icon {
+  font-size: 1.25rem;
+}
+
+/* Dishes Input */
+.recommended-dishes-input {
+  width: 100%;
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.recommended-dishes-input:focus {
+  border-color: #3b82f6;
+  outline: none;
+  background-color: white;
+}
+
+.recommended-dishes-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Price Range */
+.price-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: transparent; /* Remove background to match */
+  padding: 0; /* Remove padding */
+  border-radius: 8px;
+  align-items: center; /* Center everything inside */
+  text-align: center;
+}
+
+.price-label {
+  font-size: 1rem;
+  font-weight: 600; 
+  color: #111827; 
+  margin: 0;
+}
+
+.price-options {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.price-button {
+  padding: 0.75rem 1.5rem;
+  background-color: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #374151;
+  min-width: 100px;
+}
+
+.price-button.selected {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.price-button:hover {
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+}
+
+.price-button.selected:hover {
+  background-color: #2563eb;
+}
+
+/* Submit Button */
+.submit-section {
+  padding: 1.5rem 2rem 2rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.submit-review-button {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  display: block;
+  padding: 1rem;
+  background-color: #3730a3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-review-button:hover {
+  background-color: #312e81;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 48, 163, 0.3);
+}
