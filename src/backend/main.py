@@ -183,8 +183,8 @@ async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
 async def autocomplete_restaurants_yelp(
     text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
-    latitude: float | None = Query(None, description="Latitude for location biasing"),
-    longitude: float | None = Query(None, description="Longitude for location biasing"),
+    latitude: Optional[float] = Query(None, description="Latitude for location biasing"),
+    longitude: Optional[float] = Query(None, description="Longitude for location biasing")
 ):
     """
     Autocomplete keywords/category/resturant names using the Yelp API.
