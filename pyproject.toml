@@ -71,7 +71,7 @@ module = "src.backend.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
 warn_return_any = false
-warn_unused_configs = False
+warn_unused_configs = false
 follow_imports = "skip"
 ignore_missing_imports = true
 
