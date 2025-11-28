@@ -20,7 +20,7 @@ export default function Login() {
     setError("");
     try {
       const data = await api.login(email, pwd);
-      localStorage.setItem("token", data.token);
+      localStorage.setItem("authToken", data.token);
       navigate("/search");
     } catch (err) {
       setError(err.message);
