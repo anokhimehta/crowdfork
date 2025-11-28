@@ -4,8 +4,22 @@ from typing import Optional, List, Any
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 import pyrebase
-from models import SignUpSchema, LoginSchema, Review, ReviewResponse, Restaurant, RestaurantResponse, RestaurantUpdate
-from yelp_api_client import search_yelp, YelpSearchResponse, YelpSearchQuery, autocomplete_yelp, YelpAutocompleteResponse
+from models import (
+    SignUpSchema,
+    LoginSchema,
+    Review,
+    ReviewResponse,
+    Restaurant,
+    RestaurantResponse,
+    RestaurantUpdate,
+)
+from yelp_api_client import (
+    search_yelp,
+    YelpSearchResponse,
+    YelpSearchQuery,
+    autocomplete_yelp,
+    YelpAutocompleteResponse,
+)
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -25,7 +39,7 @@ from fastapi.middleware.cors import CORSMiddleware
 origins = [
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
-    "*" # Allow all for now to be safe
+    "*",  # Allow all for now to be safe
 ]
 
 app.add_middleware(
@@ -149,30 +163,24 @@ async def search_restaurants_yelp(
 
 
 @app.get("/recommendations/nearby", response_model=YelpSearchResponse)
-async def get_local_picks(
-    latitude: float,
-    longitude: float,
-    limit: int = 10
-):
+async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
     """
     Local Picks - gets highly rated places nearby without a search term.
     """
     try:
         # We call search_yelp but without a 'term', and sort by rating
         return await search_yelp(
-            latitude=latitude, 
-            longitude=longitude, 
-            sort_by="rating",
-            limit=limit
+            latitude=latitude, longitude=longitude, sort_by="rating", limit=limit
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
 async def autocomplete_restaurants_yelp(
     text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
     latitude: Optional[float] = Query(None, description="Latitude for location biasing"),
-    longitude: Optional[float] = Query(None, description="Longitude for location biasing")
+    longitude: Optional[float] = Query(None, description="Longitude for location biasing"),
 ):
     """
     Autocomplete keywords/category/resturant names using the Yelp API.
@@ -182,9 +190,10 @@ async def autocomplete_restaurants_yelp(
         return yelp_results
     except Exception as e:
         raise HTTPException(
-            status_code=500, # error can vary based on issue (text too short, etc)
-            detail=f"Autocomplete failed: {str(e)}" 
+            status_code=500,  # error can vary based on issue (text too short, etc)
+            detail=f"Autocomplete failed: {str(e)}",
         )
+
 
 # ------- Helper function to verify restaurant existence ----------
 
@@ -375,28 +384,25 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
 
     try:
         try:
-            query = db.collection('restaurants')
-            
+            query = db.collection("restaurants")
+
             # Filter by cuisine type if provided
             if cuisine_type:
-                query = query.where('cuisine_type', '==', cuisine_type)
-            
-            query = query.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit)
-            
+                query = query.where("cuisine_type", "==", cuisine_type)
+
+            query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+
             restaurants = []
             for doc in query.stream():
                 restaurant_data = doc.to_dict()
-                restaurants.append(RestaurantResponse(
-                    id=doc.id,
-                    **restaurant_data
-                ))
-            
+                restaurants.append(RestaurantResponse(id=doc.id, **restaurant_data))
+
             return restaurants
         except Exception as db_error:
             print(f"Firestore error: {db_error}. Falling back to Yelp.")
             # Fallback to Yelp
             yelp_results = await search_yelp(term="restaurants", location="NYC", limit=limit)
-            
+
             mapped_restaurants = []
             for business in yelp_results.businesses:
                 # Map Yelp business to RestaurantResponse
@@ -404,18 +410,20 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
                 cuisine = "Unknown"
                 if business.categories:
                     cuisine = business.categories[0].get("title", "Unknown")
-                
-                mapped_restaurants.append(RestaurantResponse(
-                    id=business.id,
-                    name=business.name,
-                    address=address,
-                    cuisine_type=cuisine,
-                    description=f"Rating: {business.rating}",
-                    phone=business.phone,
-                    image_url=business.image_url,
-                    created_at=datetime.utcnow().isoformat(),
-                    updated_at=datetime.utcnow().isoformat()
-                ))
+
+                mapped_restaurants.append(
+                    RestaurantResponse(
+                        id=business.id,
+                        name=business.name,
+                        address=address,
+                        cuisine_type=cuisine,
+                        description=f"Rating: {business.rating}",
+                        phone=business.phone,
+                        image_url=business.image_url,
+                        created_at=datetime.utcnow().isoformat(),
+                        updated_at=datetime.utcnow().isoformat(),
+                    )
+                )
             return mapped_restaurants
 
     except Exception as e:
