@@ -15,7 +15,7 @@ export default function Search() {
     const [error, setError] = useState("");
     const suggestionsRef = useRef(null);
 
-    const localPicks = Array(7).fill(null);
+    const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
 
     //when user starts typing, show suggestions
@@ -61,6 +61,12 @@ export default function Search() {
     useEffect(() => {
         loadRestaurants();
     }, []);
+
+    //hard code NYC for now, later use geolocation API?
+    useEffect(() => {
+        loadLocalPicks(40.7128, -74.0060); // NYC fallback
+    }, []);
+
 
     const loadRestaurants = async () => {
         setLoading(true);
@@ -112,6 +118,16 @@ export default function Search() {
             .finally(() => {
                 setLoading(false);
             });
+    };
+
+    const loadLocalPicks = async (lat, lon) => {
+        try {
+            const data = await api.getLocalPicks(lat, lon, 10);
+            setLocalPicks(data.businesses || []);
+        }
+        catch (err) {
+            console.error("Failed to load local picks", err);
+        }
     };
 
     return (
@@ -182,8 +198,17 @@ export default function Search() {
                 <div className="local-picks-section">
                     <h2 className="section-title">Local Picks</h2>
                     <div className="local-picks-container">
-                        {localPicks.map((_, index) => (
-                            <div key={index} className="local-pick-card" />
+                        {localPicks.map((pick, index) => (
+                            <div key={pick.id || index} className="local-pick-card">
+                                <div 
+                                    className="local-pick-image" 
+                                    style={{ backgroundImage: `url(${pick.image_url || ''})` }}
+                                />
+                                <div className="local-pick-name">{pick.name}</div>
+                                <div className="local-pick-rating">
+                                    {pick.rating ? `Rating: ${pick.rating}` : "No rating yet"}
+                                </div>
+                            </div>
                         ))}
                     </div>
                 </div>

@@ -297,6 +297,15 @@
   }
 }
 
+.local-pick-image {
+    width: 100%;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 10px;
+}
+
+
 /* Bottom Navigation Bar */
 .bottom-nav {
   position: fixed;
