@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
+import { api } from "../api";
 import "./SignUp.css"; // styles below
 
 export default function SignUp() {
@@ -33,17 +34,12 @@ export default function SignUp() {
       setLoading(true);
       setError("");
 
-      // TODO: replace with your real API call
-      // Simulate API latency
-      await new Promise((r) => setTimeout(r, 600));
-
-      // (Optional) demo persistence; remove when wiring backend
-      const users = JSON.parse(localStorage.getItem("cf_users") || "[]");
-      users.push({ email, pwdHash: `demo-${pwd}` }); // DO NOT store plain passwords in real apps
-      localStorage.setItem("cf_users", JSON.stringify(users));
+      await api.signup(email, pwd);
 
       // Go to login with a success hint
       navigate("/login", { state: { msg: "Account created. Please sign in." } });
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
