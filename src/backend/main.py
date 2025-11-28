@@ -1,32 +1,30 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Query
-from pydantic import BaseModel
-from typing import Optional, List, Any
+from datetime import datetime
+from typing import Any
+
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
+import firebaseconfig as firebaseconfig
 import pyrebase
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from firebase_admin import auth, credentials, firestore
 from models import (
-    SignUpSchema,
     LoginSchema,
-    Review,
-    ReviewResponse,
     Restaurant,
     RestaurantResponse,
     RestaurantUpdate,
+    Review,
+    ReviewResponse,
+    SignUpSchema,
 )
 from yelp_api_client import (
-    search_yelp,
-    YelpSearchResponse,
-    YelpSearchQuery,
-    autocomplete_yelp,
     YelpAutocompleteResponse,
+    YelpSearchResponse,
+    autocomplete_yelp,
+    search_yelp,
 )
-from fastapi.responses import JSONResponse
-from fastapi.requests import Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime
-import firebaseconfig as firebaseconfig
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,7 +32,6 @@ load_dotenv()
 app = FastAPI()
 
 # Add CORS middleware
-from fastapi.middleware.cors import CORSMiddleware
 
 origins = [
     "http://localhost:5173",  # Vite default port
@@ -82,21 +79,21 @@ async def get_current_user(
             "user_id": decoded_token["uid"],
             "email": decoded_token.get("email", ""),
         }
-    except auth.InvalidIdTokenError:
+    except auth.InvalidIdTokenError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token. Please login again.",
-        )
-    except auth.ExpiredIdTokenError:
+        ) from err
+    except auth.ExpiredIdTokenError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token has expired. Please login again.",
-        )
-    except Exception as e:
+        ) from err
+    except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed. Please login.",
-        )
+        ) from err
 
 
 # Create a new user account
@@ -110,10 +107,10 @@ async def create_an_account(user_data: SignUpSchema):
             content={"message": f"User account successfully for User {user.uid}"},
             status_code=201,
         )
-    except auth.EmailAlreadyExistsError:
+    except auth.EmailAlreadyExistsError as err:
         raise HTTPException(
             status_code=400, detail=f"Account already created for the email {email}"
-        )
+        ) from err
 
 
 # Create a login token for existing user
@@ -126,8 +123,8 @@ async def create_access_token(user_data: LoginSchema):
 
         token = user["idToken"]
         return JSONResponse(content={"token": token}, status_code=200)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid username or password")
+    except Exception as err:
+        raise HTTPException(status_code=400, detail="Invalid username or password") from err
 
 
 # This might be an unused/unnecssary endpoint, similar to get_current_user
@@ -159,7 +156,7 @@ async def search_restaurants_yelp(
         yelp_results = await search_yelp(term=term, location=location, limit=20)
         return yelp_results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}") from e
 
 
 @app.get("/recommendations/nearby", response_model=YelpSearchResponse)
@@ -173,14 +170,14 @@ async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
             latitude=latitude, longitude=longitude, sort_by="rating", limit=limit
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
 async def autocomplete_restaurants_yelp(
     text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
-    latitude: Optional[float] = Query(None, description="Latitude for location biasing"),
-    longitude: Optional[float] = Query(None, description="Longitude for location biasing"),
+    latitude: float | None = Query(None, description="Latitude for location biasing"),
+    longitude: float | None = Query(None, description="Longitude for location biasing"),
 ):
     """
     Autocomplete keywords/category/resturant names using the Yelp API.
@@ -192,7 +189,7 @@ async def autocomplete_restaurants_yelp(
         raise HTTPException(
             status_code=500,  # error can vary based on issue (text too short, etc)
             detail=f"Autocomplete failed: {str(e)}",
-        )
+        ) from e
 
 
 # ------- Helper function to verify restaurant existence ----------
@@ -249,7 +246,7 @@ async def create_review(
 
         return ReviewResponse(id=review_id, **review_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create review: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create review: {str(e)}") from e
 
 
 @app.delete("/reviews/{review_id}")
@@ -276,10 +273,10 @@ async def delete_review(review_id: str, current_user: dict = Depends(get_current
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}") from e
 
 
-@app.get("/users/me/reviews", response_model=List[ReviewResponse])
+@app.get("/users/me/reviews", response_model=list[ReviewResponse])
 async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
     """Get all reviews by the current logged-in user"""
 
@@ -299,11 +296,11 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
 
         return reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}") from e
 
 
-@app.get("/restaurants/{restaurant_id}/reviews", response_model=List[ReviewResponse])
-async def list_user_reviews(
+@app.get("/restaurants/{restaurant_id}/reviews", response_model=list[ReviewResponse])
+async def list_restaurant_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
     # Check if restaurant exists
@@ -328,7 +325,7 @@ async def list_user_reviews(
 
         return reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}") from e
 
 
 # in memory reviews list for testing purpose?? can be removed later
@@ -375,11 +372,11 @@ async def create_restaurant(restaurant: Restaurant):
 
         return RestaurantResponse(id=restaurant_id, **restaurant_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}") from e
 
 
-@app.get("/restaurants", response_model=List[RestaurantResponse])
-async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
+@app.get("/restaurants", response_model=list[RestaurantResponse])
+async def list_restaurants(limit: int = 20, cuisine_type: str | None = None):
     """Get all restaurants from local db (no authentication required for browsing)"""
 
     try:
@@ -427,7 +424,7 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
             return mapped_restaurants
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}") from e
 
 
 @app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -446,7 +443,7 @@ async def get_restaurant(restaurant_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}") from e
 
 
 @app.put("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -485,7 +482,7 @@ async def update_restaurant(restaurant_id: str, restaurant_update: RestaurantUpd
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}") from e
 
 
 @app.delete("/restaurants/{restaurant_id}")
@@ -514,4 +511,4 @@ async def delete_restaurant(restaurant_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}") from e

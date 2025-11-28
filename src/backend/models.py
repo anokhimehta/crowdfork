@@ -1,5 +1,5 @@
+
 from pydantic import BaseModel
-from typing import Optional, List, Any
 
 
 class SignUpSchema(BaseModel):
@@ -25,7 +25,7 @@ class LoginSchema(BaseModel):
 class Review(BaseModel):
     restaurant_id: str
     rating: float
-    text: Optional[str] = None
+    text: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -42,17 +42,17 @@ class ReviewResponse(BaseModel):
     restaurant_id: str
     user_id: str
     rating: float
-    text: Optional[str] = None
+    text: str | None = None
     created_at: str
 
 
 class Restaurant(BaseModel):
     name: str
     address: str
-    cuisine_type: Optional[str] = None
-    description: Optional[str] = None
-    phone: Optional[str] = None
-    image_url: Optional[str] = None
+    cuisine_type: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    image_url: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -71,18 +71,18 @@ class RestaurantResponse(BaseModel):
     id: str
     name: str
     address: str
-    cuisine_type: Optional[str] = None
-    description: Optional[str] = None
-    phone: Optional[str] = None
-    image_url: Optional[str] = None
+    cuisine_type: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    image_url: str | None = None
     created_at: str
     updated_at: str
 
 
 class RestaurantUpdate(BaseModel):
-    name: Optional[str] = None
-    address: Optional[str] = None
-    cuisine_type: Optional[str] = None
-    description: Optional[str] = None
-    phone: Optional[str] = None
-    image_url: Optional[str] = None
+    name: str | None = None
+    address: str | None = None
+    cuisine_type: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    image_url: str | None = None
