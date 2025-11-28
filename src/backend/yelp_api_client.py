@@ -1,16 +1,18 @@
-import httpx
 import os
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Any
+
+import httpx
 
 # Load environment variables
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
 YELP_API_KEY = os.getenv("YELP_API_KEY")
 YELP_API_HOST = "https://api.yelp.com"
 SEARCH_PATH = "/v3/businesses/search"
+AUTOCOMPLETE_PATH = "/v3/autocomplete"
 
 # Warn if API key is not set
 if not YELP_API_KEY:
@@ -38,17 +40,25 @@ class YelpBusiness(BaseModel):
     rating: float
     phone: str
     display_phone: str
-    distance: Optional[float] = None
-    coordinates: Dict[str, float]
-    location: Dict[str, Any]
-    url: Optional[str] = None
+    distance: float | None = None
+    coordinates: dict[str, float]
+    location: dict[str, Any]
+    url: str | None = None
+    categories: list[dict[str, str]] = []
 
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):
-    businesses: List[YelpBusiness]
+    businesses: list[YelpBusiness]
     total: int
-    region: Dict[str, Any]
+    region: dict[str, Any]
+
+
+# Response model for Yelp autocomplete
+class YelpAutocompleteResponse(BaseModel):
+    terms: list[dict[str, str]]
+    businesses: list[dict[str, Any]]
+    categories: list[dict[str, Any]]
 
 
 # Function to search Yelp API
@@ -60,6 +70,24 @@ async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchRe
     response.raise_for_status()
     data = response.json()
     return YelpSearchResponse(**data)
+
+
+async def autocomplete_yelp(
+    text: str, latitude: float | None = None, longitude: float | None = None
+) -> YelpAutocompleteResponse:
+    url = f"{YELP_API_HOST}{AUTOCOMPLETE_PATH}"
+    headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
+
+    params = {"text": text}
+    if latitude is not None and longitude is not None:
+        params["latitude"] = latitude
+        params["longitude"] = longitude
+
+    # async with httpx.AsyncClient() as client:
+    response = httpx.get(url, headers=headers, params=params)
+    response.raise_for_status()
+    data = response.json()
+    return YelpAutocompleteResponse(**data)
 
 
 # Example usage

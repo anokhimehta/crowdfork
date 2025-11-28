@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
+import { api } from "../api";
 import "./SignUp.css"; // styles below
 
 const API_BASE_URL = "http://localhost:8000"; 
@@ -9,11 +10,12 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [tagline, setTagline] = useState("");
   const [location, setLocation] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  // const [imageUrl, setImageUrl] = useState(""); 
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -36,14 +38,13 @@ export default function SignUp() {
     }
     setLoading(true);
     setError("");
-
     const userData = { 
       email: email, 
       password: pwd, 
       tagline: tagline,
       location: location,
-      image_url: imageUrl,
     };
+
 
     try {
       const response = await fetch(`${API_BASE_URL}/signup`, {
@@ -54,7 +55,7 @@ export default function SignUp() {
         body: JSON.stringify(userData),
       });
 
-    const result = await response.json();
+      const result = await response.json();
 
       if (response.ok) {
         
@@ -79,8 +80,6 @@ export default function SignUp() {
       setLoading(false);
     } 
   };
-
-
 
   return (
     <div className="cf-signup-wrap">
@@ -131,13 +130,13 @@ export default function SignUp() {
           value={tagline}
           onChange={(e) => setTagline(e.target.value)}
         />
-        <input
+        {/* <input
           className="cf-input"
           type="url"
           placeholder="Profile Image URL (Optional)"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
-        />
+        /> */}
 
         {error && <div className="cf-error">{error}</div>}
 

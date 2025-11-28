@@ -1,36 +1,44 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Query
-from pydantic import BaseModel
-from typing import Optional, List, Any
+from datetime import datetime
+from typing import Any
+
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
+import firebaseconfig as firebaseconfig
 import pyrebase
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from firebase_admin import auth, credentials, firestore
 from models import (
-    SignUpSchema,
     LoginSchema,
-    Review,
-    ReviewResponse,
     Restaurant,
     RestaurantResponse,
     RestaurantUpdate,
+    Review,
+    ReviewResponse,
+    ReviewWithRestaurantInfo,
+    SignUpSchema,
+    
 )
-from yelp_api_client import search_yelp, YelpSearchResponse, YelpSearchQuery
-from fastapi.responses import JSONResponse
-from fastapi.requests import Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import datetime
-import firebaseconfig as firebaseconfig
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+from yelp_api_client import (
+    YelpAutocompleteResponse,
+    YelpSearchResponse,
+    autocomplete_yelp,
+    search_yelp,
+)
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = FastAPI()
 
-# Since our servers are running on different ports, we need to enable handle CORS
+# Add CORS middleware
+
 origins = [
-    "http://localhost:5173",  # Frontend dev server
+    "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
+    "*",  # Allow all for now to be safe
 ]
 
 app.add_middleware(
@@ -57,7 +65,7 @@ db = firestore.client()
 
 reviews = []
 
-# --------- Auth Realted Functions ---------
+# --------- Auth Related Functions ---------
 
 
 # (Auth) Dependency to get current user from Firebase ID token
@@ -73,21 +81,21 @@ async def get_current_user(
             "user_id": decoded_token["uid"],
             "email": decoded_token.get("email", ""),
         }
-    except auth.InvalidIdTokenError:
+    except auth.InvalidIdTokenError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token. Please login again.",
-        )
-    except auth.ExpiredIdTokenError:
+        ) from err
+    except auth.ExpiredIdTokenError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token has expired. Please login again.",
-        )
-    except Exception as e:
+        ) from err
+    except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed. Please login.",
-        )
+        ) from err
 
 
 # Create a new user account
@@ -95,7 +103,7 @@ async def get_current_user(
 async def create_an_account(user_data: SignUpSchema):
     email = user_data.email
     password = user_data.password
-    image_url = user_data.image_url
+    # image_url = user_data.image_url
     tagline = user_data.tagline
     location = user_data.location
 
@@ -108,7 +116,7 @@ async def create_an_account(user_data: SignUpSchema):
             "email": email,
             "favorites": [], 
             "created_at": datetime.utcnow().isoformat(),
-            "image_url": image_url,
+            # "image_url": image_url,
             "tagline": tagline,
             "location": location,
             
@@ -118,10 +126,10 @@ async def create_an_account(user_data: SignUpSchema):
             content={"message": f"User account successfully for User {user.uid}"},
             status_code=201,
         )
-    except auth.EmailAlreadyExistsError:
+    except auth.EmailAlreadyExistsError as err:
         raise HTTPException(
             status_code=400, detail=f"Account already created for the email {email}"
-        )
+        ) from err
 
 
 # Create a login token for existing user
@@ -134,8 +142,8 @@ async def create_access_token(user_data: LoginSchema):
 
         token = user["idToken"]
         return JSONResponse(content={"token": token}, status_code=200)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid username or password")
+    except Exception as err:
+        raise HTTPException(status_code=400, detail="Invalid username or password") from err
 
 
 # This might be an unused/unnecssary endpoint, similar to get_current_user
@@ -275,7 +283,40 @@ async def search_restaurants_yelp(
         yelp_results = await search_yelp(term=term, location=location, limit=20)
         return yelp_results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}") from e
+
+
+@app.get("/recommendations/nearby", response_model=YelpSearchResponse)
+async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
+    """
+    Local Picks - gets highly rated places nearby without a search term.
+    """
+    try:
+        # We call search_yelp but without a 'term', and sort by rating
+        return await search_yelp(
+            latitude=latitude, longitude=longitude, sort_by="rating", limit=limit
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
+async def autocomplete_restaurants_yelp(
+    text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
+    latitude: float | None = Query(None, description="Latitude for location biasing"),
+    longitude: float | None = Query(None, description="Longitude for location biasing"),
+):
+    """
+    Autocomplete keywords/category/resturant names using the Yelp API.
+    """
+    try:
+        yelp_results = await autocomplete_yelp(text=text, latitude=latitude, longitude=longitude)
+        return yelp_results
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,  # error can vary based on issue (text too short, etc)
+            detail=f"Autocomplete failed: {str(e)}",
+        ) from e
 
 
 # ------- Helper function to verify restaurant existence ----------
@@ -332,7 +373,7 @@ async def create_review(
 
         return ReviewResponse(id=review_id, **review_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create review: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create review: {str(e)}") from e
 
 
 @app.delete("/reviews/{review_id}")
@@ -359,37 +400,9 @@ async def delete_review(review_id: str, current_user: dict = Depends(get_current
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}") from e
 
 
-# @app.get("/users/me/reviews", response_model=List[ReviewResponse])
-# async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
-#     """Get all reviews by the current logged-in user"""
-
-#     try:
-#         # Query reviews by this user
-#         reviews_ref = (
-#             db.collection("reviews")
-#             .where("user_id", "==", current_user["user_id"])
-#             .order_by("created_at", direction=firestore.Query.DESCENDING)
-#             .limit(limit)
-#         )
-
-#         reviews = []
-#         for doc in reviews_ref.stream():
-#             review_data = doc.to_dict()
-#             reviews.append(ReviewResponse(id=doc.id, **review_data))
-
-#         return reviews
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
-
-
-
-# In main.py, you need to import the new model
-from models import ReviewWithRestaurantInfo # Ensure you import the new model
-
-# ... (rest of your imports and setup)
 
 @app.get("/users/me/reviews", response_model=List[ReviewWithRestaurantInfo])
 async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
@@ -399,7 +412,6 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
     user_id = current_user["user_id"]
 
     try:
-        # 1. Query for the user's reviews
         reviews_ref = (
             db.collection("reviews")
             .where("user_id", "==", user_id)
@@ -411,23 +423,16 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
         if not review_docs:
             return []
 
-        # 2. Extract unique restaurant IDs from the reviews
         restaurant_ids = list(set(doc.to_dict()["restaurant_id"] for doc in review_docs))
 
-        # 3. Batch fetch restaurant details by ID (more efficient than individual fetches)
         restaurant_map = {}
-        # Create references for batch fetching
         restaurant_refs = [db.collection("restaurants").document(rid) for rid in restaurant_ids]
         
-        # Use get_all for highly efficient retrieval of multiple documents
         fetched_restaurants = db.get_all(restaurant_refs)
         for doc in fetched_restaurants:
             if doc.exists:
-                # Map ID to the restaurant name
                 restaurant_map[doc.id] = doc.to_dict().get("name", "Unknown Restaurant")
-            # If the restaurant document was deleted, the ID won't exist
 
-        # 4. Combine review data with the restaurant name
         enhanced_reviews = []
         for doc in review_docs:
             review_data = doc.to_dict()
@@ -446,11 +451,11 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
 
         return enhanced_reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user's reviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user's reviews: {str(e)}") from e
 
 
-@app.get("/restaurant/{restaurant_id}/reviews", response_model=List[ReviewResponse])
-async def list_user_reviews(
+@app.get("/restaurants/{restaurant_id}/reviews", response_model=list[ReviewResponse])
+async def list_restaurant_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
     # Check if restaurant exists
@@ -475,7 +480,7 @@ async def list_user_reviews(
 
         return reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}") from e
 
 
 # in memory reviews list for testing purpose?? can be removed later
@@ -522,30 +527,59 @@ async def create_restaurant(restaurant: Restaurant):
 
         return RestaurantResponse(id=restaurant_id, **restaurant_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}") from e
 
 
-@app.get("/restaurants", response_model=List[RestaurantResponse])
-async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
+@app.get("/restaurants", response_model=list[RestaurantResponse])
+async def list_restaurants(limit: int = 20, cuisine_type: str | None = None):
     """Get all restaurants from local db (no authentication required for browsing)"""
 
     try:
-        query = db.collection("restaurants")
+        try:
+            query = db.collection("restaurants")
 
-        # Filter by cuisine type if provided
-        if cuisine_type:
-            query = query.where("cuisine_type", "==", cuisine_type)
+            # Filter by cuisine type if provided
+            if cuisine_type:
+                query = query.where("cuisine_type", "==", cuisine_type)
 
-        query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+            query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
 
-        restaurants = []
-        for doc in query.stream():
-            restaurant_data = doc.to_dict()
-            restaurants.append(RestaurantResponse(id=doc.id, **restaurant_data))
+            restaurants = []
+            for doc in query.stream():
+                restaurant_data = doc.to_dict()
+                restaurants.append(RestaurantResponse(id=doc.id, **restaurant_data))
 
-        return restaurants
+            return restaurants
+        except Exception as db_error:
+            print(f"Firestore error: {db_error}. Falling back to Yelp.")
+            # Fallback to Yelp
+            yelp_results = await search_yelp(term="restaurants", location="NYC", limit=limit)
+
+            mapped_restaurants = []
+            for business in yelp_results.businesses:
+                # Map Yelp business to RestaurantResponse
+                address = ", ".join(business.location.get("display_address", []))
+                cuisine = "Unknown"
+                if business.categories:
+                    cuisine = business.categories[0].get("title", "Unknown")
+
+                mapped_restaurants.append(
+                    RestaurantResponse(
+                        id=business.id,
+                        name=business.name,
+                        address=address,
+                        cuisine_type=cuisine,
+                        description=f"Rating: {business.rating}",
+                        phone=business.phone,
+                        image_url=business.image_url,
+                        created_at=datetime.utcnow().isoformat(),
+                        updated_at=datetime.utcnow().isoformat(),
+                    )
+                )
+            return mapped_restaurants
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}") from e
 
 
 @app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -564,7 +598,7 @@ async def get_restaurant(restaurant_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}") from e
 
 
 @app.put("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -603,7 +637,7 @@ async def update_restaurant(restaurant_id: str, restaurant_update: RestaurantUpd
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}") from e
 
 
 @app.delete("/restaurants/{restaurant_id}")
@@ -632,4 +666,4 @@ async def delete_restaurant(restaurant_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}") from e

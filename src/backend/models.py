@@ -1,13 +1,11 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any
 
 
 class SignUpSchema(BaseModel):
     email: str
     password: str
-    image_url: Optional[str] = None
-    tagline: Optional[str] = None
-    location: Optional[str] = None
+    tagline: str | None = None
+    location: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -28,7 +26,7 @@ class LoginSchema(BaseModel):
 class Review(BaseModel):
     restaurant_id: str
     rating: float
-    text: Optional[str] = None
+    text: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -45,16 +43,17 @@ class ReviewResponse(BaseModel):
     restaurant_id: str
     user_id: str
     rating: float
-    text: Optional[str] = None
+    text: str | None = None
     created_at: str
 
 
 class Restaurant(BaseModel):
     name: str
     address: str
-    cuisine_type: Optional[str] = None
-    description: Optional[str] = None
-    phone: Optional[str] = None
+    cuisine_type: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    image_url: str | None = None
 
     class Config:
         json_schema_extra = {
@@ -64,6 +63,7 @@ class Restaurant(BaseModel):
                 "cuisine_type": "Italian",
                 "description": "Best pizza in town!",
                 "phone": "+1-555-0123",
+                "image_url": "http://example.com/image.jpg",
             }
         }
 
@@ -72,19 +72,21 @@ class RestaurantResponse(BaseModel):
     id: str
     name: str
     address: str
-    cuisine_type: Optional[str] = None
-    description: Optional[str] = None
-    phone: Optional[str] = None
+    cuisine_type: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    image_url: str | None = None
     created_at: str
     updated_at: str
 
 
 class RestaurantUpdate(BaseModel):
-    name: Optional[str] = None
-    address: Optional[str] = None
-    cuisine_type: Optional[str] = None
-    description: Optional[str] = None
-    phone: Optional[str] = None
+    name: str | None = None
+    address: str | None = None
+    cuisine_type: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    image_url: str | None = None
 
 
 
