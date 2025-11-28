@@ -19,6 +19,7 @@ from models import (
     ReviewResponse,
     ReviewWithRestaurantInfo,
     SignUpSchema,
+    UserUpdateSchema,
     
 )
 from yelp_api_client import (
@@ -27,6 +28,7 @@ from yelp_api_client import (
     autocomplete_yelp,
     search_yelp,
 )
+from typing import List, Optional
 
 # Load environment variables from .env file
 load_dotenv()
@@ -104,9 +106,10 @@ async def create_an_account(user_data: SignUpSchema):
     email = user_data.email
     password = user_data.password
     # image_url = user_data.image_url
+    name = user_data.name
     tagline = user_data.tagline
     location = user_data.location
-
+    current_time = datetime.utcnow().isoformat()
     
     try:
         user = auth.create_user(email=email, password=password)
@@ -117,8 +120,12 @@ async def create_an_account(user_data: SignUpSchema):
             "favorites": [], 
             "created_at": datetime.utcnow().isoformat(),
             # "image_url": image_url,
+            "name": name,
             "tagline": tagline,
             "location": location,
+            "created_at": current_time, 
+            "joined_date": current_time,
+            
             
         })
         
@@ -158,6 +165,7 @@ async def validate_token(request: Request):
 @app.get("/")
 def root():
     return {"Hello": "Worlds"}
+
 
 # --------------- Favorite Restaurants Operations ----------------
 @app.post("/favorites/{restaurant_id}")
@@ -207,7 +215,49 @@ async def remove_favorite_restaurant(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to remove favorite: {str(e)}")
+#--------------- User Profile Operations ----------------
 
+@app.put("/users/me")
+async def update_user_profile(
+    user_update: UserUpdateSchema, current_user: dict = Depends(get_current_user)
+):
+    """Update the current user's profile details in Firestore."""
+    user_id = current_user["user_id"]
+    user_doc_ref = db.collection("users").document(user_id)
+    
+    update_data = {}
+
+    # Map frontend fields to Firestore fields
+    if user_update.name is not None:
+        update_data["name"] = user_update.name
+    if user_update.tagline is not None:
+        update_data["tagline"] = user_update.tagline
+    if user_update.location is not None:
+        update_data["location"] = user_update.location
+    if user_update.image_url is not None:
+        update_data["image_url"] = user_update.image_url
+
+    # Handle Email Change (Requires Firebase Auth update)
+    if user_update.email is not None and user_update.email != current_user["email"]:
+        try:
+            auth.update_user(user_id, email=user_update.email)
+            update_data["email"] = user_update.email
+        except auth.EmailAlreadyExistsError:
+            raise HTTPException(status_code=400, detail="Email is already in use by another account.")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to update email in Auth: {str(e)}")
+
+    if not update_data:
+        return JSONResponse(content={"message": "No data provided for update."}, status_code=200)
+
+    try:
+        user_doc_ref.update(update_data)
+        
+        updated_doc = user_doc_ref.get().to_dict()
+        return {**current_user, **updated_doc} # Merge current token info with new Firestore data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database update failed: {str(e)}") from e
 
 @app.get("/users/me")
 async def get_user_profile(current_user: dict = Depends(get_current_user)):
@@ -226,10 +276,33 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):
     return {
         "user_id": user_id,
         "email": current_user["email"],
-        "image_url": user_data.get("image_url"),
+        "name": user_data.get("name"),
         "tagline": user_data.get("tagline"),
         "location": user_data.get("location"),
+        "joined_date": user_data.get("joined_date"),
+        "image_url": user_data.get("image_url"),
     }
+
+@app.get("/users/me/reviews/count")
+async def get_user_reviews_count(current_user: dict = Depends(get_current_user)):
+    """
+    Get the total count of reviews posted by the current logged-in user.
+    """
+    user_id = current_user["user_id"]
+
+    try:
+
+        reviews_ref = db.collection("reviews").where("user_id", "==", user_id)
+    
+        count = 0
+        for _ in reviews_ref.stream():
+            count += 1
+            
+        return {"reviewCount": count}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch review count: {str(e)}") from e
+    
 
 @app.get("/users/me/favorites", response_model=List[RestaurantResponse])
 async def list_user_favorites(current_user: dict = Depends(get_current_user)):
@@ -303,8 +376,8 @@ async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
 async def autocomplete_restaurants_yelp(
     text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
-    latitude: float | None = Query(None, description="Latitude for location biasing"),
-    longitude: float | None = Query(None, description="Longitude for location biasing"),
+   latitude: Optional[float] = Query(None, description="Latitude for location biasing"),
+longitude: Optional[float] = Query(None, description="Longitude for location biasing"),
 ):
     """
     Autocomplete keywords/category/resturant names using the Yelp API.
@@ -454,7 +527,7 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
         raise HTTPException(status_code=500, detail=f"Failed to fetch user's reviews: {str(e)}") from e
 
 
-@app.get("/restaurants/{restaurant_id}/reviews", response_model=list[ReviewResponse])
+@app.get("/restaurants/{restaurant_id}/reviews", response_model=List[ReviewResponse])
 async def list_restaurant_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
@@ -530,8 +603,8 @@ async def create_restaurant(restaurant: Restaurant):
         raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}") from e
 
 
-@app.get("/restaurants", response_model=list[RestaurantResponse])
-async def list_restaurants(limit: int = 20, cuisine_type: str | None = None):
+@app.get("/restaurants", response_model=List[RestaurantResponse])
+async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None):
     """Get all restaurants from local db (no authentication required for browsing)"""
 
     try:

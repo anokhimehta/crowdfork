@@ -1,11 +1,13 @@
 from pydantic import BaseModel, Field
+from typing import Optional, Any
 
 
 class SignUpSchema(BaseModel):
     email: str
     password: str
-    tagline: str | None = None
-    location: str | None = None
+    name: Optional[str] = None
+    tagline: Optional[str] = None
+    location: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -26,7 +28,7 @@ class LoginSchema(BaseModel):
 class Review(BaseModel):
     restaurant_id: str
     rating: float
-    text: str | None = None
+    text: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -43,17 +45,17 @@ class ReviewResponse(BaseModel):
     restaurant_id: str
     user_id: str
     rating: float
-    text: str | None = None
+    text: Optional[str] = None
     created_at: str
 
 
 class Restaurant(BaseModel):
     name: str
     address: str
-    cuisine_type: str | None = None
-    description: str | None = None
-    phone: str | None = None
-    image_url: str | None = None
+    cuisine_type: Optional[str] = None
+    description: Optional[str] = None
+    phone: Optional[str] = None
+    image_url: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -72,21 +74,21 @@ class RestaurantResponse(BaseModel):
     id: str
     name: str
     address: str
-    cuisine_type: str | None = None
-    description: str | None = None
-    phone: str | None = None
-    image_url: str | None = None
+    cuisine_type: Optional[str] = None
+    description: Optional[str] = None
+    phone: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: str
     updated_at: str
 
 
 class RestaurantUpdate(BaseModel):
-    name: str | None = None
-    address: str | None = None
-    cuisine_type: str | None = None
-    description: str | None = None
-    phone: str | None = None
-    image_url: str | None = None
+    name: Optional[str] = None
+    address: Optional[str] = None
+    cuisine_type: Optional[str] = None
+    description: Optional[str] = None
+    phone: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 
@@ -102,3 +104,12 @@ class ReviewWithRestaurantInfo(BaseModel):
     
     # New required field: The name of the restaurant
     restaurant_name: str
+
+
+
+class UserUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    tagline: Optional[str] = None 
+    location: Optional[str] = None
+    image_url: Optional[str] = None

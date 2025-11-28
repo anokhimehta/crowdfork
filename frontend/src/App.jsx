@@ -7,7 +7,6 @@ import ReviewForm from './pages/ReviewForm'
 import Restaurant from './pages/Restaurant'
 import Profile from './pages/Profile'
 import './App.css'
-import UserProfile from "./pages/UserProfile";
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -33,7 +32,6 @@ function AppRoutes() {
       {/* we also need to pass restaurant_id in the URL since the get restaurant needs an id  */}
       
       <Route path="/profile" element={<Profile />} />
-      <Route path="/userprofile" element={<UserProfile/>} />
     </Routes>
   );
 }

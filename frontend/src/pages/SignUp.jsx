@@ -12,6 +12,7 @@ export default function SignUp() {
   const [confirm, setConfirm] = useState("");
   const [tagline, setTagline] = useState("");
   const [location, setLocation] = useState("");
+  const [name, setName] = useState("");
   // const [imageUrl, setImageUrl] = useState(""); 
 
   const [error, setError] = useState("");
@@ -43,6 +44,7 @@ export default function SignUp() {
       password: pwd, 
       tagline: tagline,
       location: location,
+      name: name,
     };
 
 
@@ -114,6 +116,14 @@ export default function SignUp() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           required
+        />
+
+          <input
+          className="cf-input"
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
         />
 
         <input

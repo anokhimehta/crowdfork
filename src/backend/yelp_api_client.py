@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Optional, Any, Dict, List
 
 import httpx
 
@@ -40,25 +40,25 @@ class YelpBusiness(BaseModel):
     rating: float
     phone: str
     display_phone: str
-    distance: float | None = None
-    coordinates: dict[str, float]
-    location: dict[str, Any]
-    url: str | None = None
-    categories: list[dict[str, str]] = []
+    distance: Optional[float] = None
+    coordinates: Dict[str, float]
+    location: Dict[str, Any]
+    url: Optional[str] = None
+    categories: List[Dict[str, str]] = []
 
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):
-    businesses: list[YelpBusiness]
+    businesses: List[YelpBusiness]
     total: int
-    region: dict[str, Any]
+    region: Dict[str, Any]
 
 
 # Response model for Yelp autocomplete
 class YelpAutocompleteResponse(BaseModel):
-    terms: list[dict[str, str]]
-    businesses: list[dict[str, Any]]
-    categories: list[dict[str, Any]]
+    terms: List[Dict[str, str]]
+    businesses: List[Dict[str, Any]]
+    categories: List[Dict[str, Any]]
 
 
 # Function to search Yelp API
@@ -73,7 +73,7 @@ async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchRe
 
 
 async def autocomplete_yelp(
-    text: str, latitude: float | None = None, longitude: float | None = None
+    text: str, latitude: Optional[float] = None, longitude: Optional[float] = None
 ) -> YelpAutocompleteResponse:
     url = f"{YELP_API_HOST}{AUTOCOMPLETE_PATH}"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
