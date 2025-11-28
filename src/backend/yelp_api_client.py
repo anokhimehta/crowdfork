@@ -1,10 +1,11 @@
-import httpx
 import os
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Any
+
+import httpx
 
 # Load environment variables
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -40,24 +41,26 @@ class YelpBusiness(BaseModel):
     rating: float
     phone: str
     display_phone: str
-    distance: Optional[float] = None
-    coordinates: Dict[str, float]
-    location: Dict[str, Any]
-    url: Optional[str] = None
-    categories: List[Dict[str, str]] = []
+    distance: float | None = None
+    coordinates: dict[str, float]
+    location: dict[str, Any]
+    url: str | None = None
+    categories: list[dict[str, str]] = []
 
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):
-    businesses: List[YelpBusiness]
+    businesses: list[YelpBusiness]
     total: int
-    region: Dict[str, Any]
+    region: dict[str, Any]
+
 
 # Response model for Yelp autocomplete
 class YelpAutocompleteResponse(BaseModel):
-    terms: List[Dict[str, str]]
-    businesses: List[Dict[str, Any]]
-    categories: List[Dict[str, Any]]
+    terms: list[dict[str, str]]
+    businesses: list[dict[str, Any]]
+    categories: list[dict[str, Any]]
+
 
 # Yelp Business Detail model
 class YelpBusinessDetail(BaseModel):
@@ -97,7 +100,7 @@ async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitu
         params["latitude"] = latitude
         params["longitude"] = longitude
 
-    #async with httpx.AsyncClient() as client:
+    # async with httpx.AsyncClient() as client:
     response = httpx.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()

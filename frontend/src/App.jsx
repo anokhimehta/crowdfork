@@ -28,7 +28,7 @@ function AppRoutes() {
       <Route path="/review" element={<ReviewForm />} />
       {/* would we need to pass restaurant_id as an argument for ReviewForm? */}
       {/* as in       <ReviewForm restaurantId={restaurantId} /> */}
-      <Route path="/restaurant" element={<Restaurant />} />
+      <Route path="/restaurant/:id" element={<Restaurant />} />
       {/* we also need to pass restaurant_id in the URL since the get restaurant needs an id  */}
       
       <Route path="/profile" element={<Profile />} />

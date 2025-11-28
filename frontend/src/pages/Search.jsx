@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
 import { api } from "../api";
@@ -15,6 +16,7 @@ export default function Search() {
     const suggestionsRef = useRef(null);
 
     const localPicks = Array(7).fill(null);
+    const navigate = useNavigate();
 
     //when user starts typing, show suggestions
     useEffect(() => {
@@ -193,7 +195,12 @@ export default function Search() {
                     {error && <p className="error-message">{error}</p>}
                     <div className="restaurant-grid">
                         {!loading && !error && restaurants.map((restaurant) => (
-                            <div key={restaurant.id} className="restaurant-card">
+                            <div key=
+                                {restaurant.id} 
+                                className="restaurant-card"
+                                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                                style={{ cursor: 'pointer' }}
+                                >
                                 <div className="restaurant-image" style={{ backgroundImage: `url(${restaurant.image_url || ''})` }} />
                                 <div className="restaurant-info">
                                     <h3 className="restaurant-name">
@@ -248,7 +255,7 @@ export default function Search() {
 
                 <button
                     className={`nav-button ${activeTab === "profile" ? "active" : ""}`}
-                    onClick={() => setActiveTab("profile")}
+                    onClick={() => navigate("/profile")}
                 >
                     <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
