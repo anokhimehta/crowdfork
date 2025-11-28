@@ -1,14 +1,18 @@
-from datetime import datetime
-from typing import Any
+from fastapi import FastAPI, HTTPException, status, Depends, Query
+from pydantic import BaseModel
+from typing import Optional, List, Any
 
+from fastapi.requests import Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from datetime import datetime
 import firebase_admin
 import firebaseconfig as firebaseconfig
 import pyrebase
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from firebase_admin import auth, credentials, firestore
 from models import (
     LoginSchema,
@@ -24,6 +28,9 @@ from yelp_api_client import (
     YelpSearchResponse,
     autocomplete_yelp,
     search_yelp,
+    YelpSearchQuery,
+    YelpBusinessDetail,
+    get_business_details
 )
 
 # Load environment variables from .env file
@@ -191,6 +198,20 @@ async def autocomplete_restaurants_yelp(
             detail=f"Autocomplete failed: {str(e)}",
         ) from e
 
+
+@app.get("/search/restaurants/{yelp_id}", response_model=YelpBusinessDetail)
+async def get_yelp_business_details(yelp_id: str):
+    """
+    Get full details for a specific restaurant from Yelp.
+    Used when a user clicks on a search result.
+    """
+    try:
+        return await get_business_details(yelp_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch details from Yelp: {str(e)}"
+        )
 
 # ------- Helper function to verify restaurant existence ----------
 
