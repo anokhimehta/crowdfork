@@ -5,7 +5,11 @@ import firebase_admin
 from firebase_admin import credentials, auth, firestore
 import pyrebase
 from models import SignUpSchema, LoginSchema, Review, ReviewResponse, Restaurant, RestaurantResponse, RestaurantUpdate
-from yelp_api_client import search_yelp, YelpSearchResponse, YelpSearchQuery, autocomplete_yelp, YelpAutocompleteResponse
+from yelp_api_client import (
+    search_yelp, YelpSearchResponse, YelpSearchQuery, 
+    autocomplete_yelp, YelpAutocompleteResponse,
+    YelpBusinessDetail, get_business_details
+)
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -184,6 +188,20 @@ async def autocomplete_restaurants_yelp(
         raise HTTPException(
             status_code=500, # error can vary based on issue (text too short, etc)
             detail=f"Autocomplete failed: {str(e)}" 
+        )
+
+@app.get("/search/restaurants/{yelp_id}", response_model=YelpBusinessDetail)
+async def get_yelp_business_details(yelp_id: str):
+    """
+    Get full details for a specific restaurant from Yelp.
+    Used when a user clicks on a search result.
+    """
+    try:
+        return await get_business_details(yelp_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch details from Yelp: {str(e)}"
         )
 
 # ------- Helper function to verify restaurant existence ----------

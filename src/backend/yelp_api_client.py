@@ -12,6 +12,7 @@ YELP_API_KEY = os.getenv("YELP_API_KEY")
 YELP_API_HOST = "https://api.yelp.com"
 SEARCH_PATH = "/v3/businesses/search"
 AUTOCOMPLETE_PATH = "/v3/autocomplete"
+BUSINESS_DETAILS_PATH = "/v3/businesses"
 
 # Warn if API key is not set
 if not YELP_API_KEY:
@@ -58,6 +59,24 @@ class YelpAutocompleteResponse(BaseModel):
     businesses: List[Dict[str, Any]]
     categories: List[Dict[str, Any]]
 
+# Yelp Business Detail model
+class YelpBusinessDetail(BaseModel):
+    id: str
+    name: str
+    image_url: Optional[str] = None
+    url: Optional[str] = None
+    phone: str = ""
+    display_phone: str = ""
+    review_count: int
+    categories: List[Dict[str, Any]] = []
+    rating: float
+    location: Dict[str, Any]
+    coordinates: Dict[str, float]
+    photos: List[str] = [] # Multiple photos!
+    price: Optional[str] = None
+    hours: List[Dict[str, Any]] = []
+    is_closed: bool 
+
 # Function to search Yelp API
 async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchResponse:
     url = f"{YELP_API_HOST}{SEARCH_PATH}"
@@ -68,6 +87,7 @@ async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchRe
     data = response.json()
     return YelpSearchResponse(**data)
 
+# Function to autocomplete Yelp API
 async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitude: Optional[float] = None) -> YelpAutocompleteResponse:
     url = f"{YELP_API_HOST}{AUTOCOMPLETE_PATH}"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
@@ -81,7 +101,31 @@ async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitu
     response = httpx.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
-    return YelpAutocompleteResponse(**data)      
+    return YelpAutocompleteResponse(**data)  
+   
+# Function to get business details by ID
+async def get_business_details(yelp_id: str) -> YelpBusinessDetail:
+    """
+    Get full details for a specific business by ID.
+    Includes photos, hours, price, etc.
+    """
+    if not YELP_API_KEY:
+        raise Exception("YELP_API_KEY is not configured.")
+        
+    # Endpoint: /v3/businesses/{id}
+    url = f"{YELP_API_HOST}{BUSINESS_DETAILS_PATH}/{yelp_id}"
+    headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return YelpBusinessDetail(**data)
+        except Exception as e:
+            print(f"Yelp Detail Error: {e}")
+            raise e
+        
 
 # Example usage
 if __name__ == "__main__":
