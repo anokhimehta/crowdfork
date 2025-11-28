@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import "./Restaurant.css"; // styles below
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function Restaurant() {
     const navigate = useNavigate();
@@ -11,6 +11,8 @@ export default function Restaurant() {
         "/images/restaurant3.jpg",
         "/images/restaurant4.jpg"
     ];
+
+    const {id} = useParams();
 
     const reviews = [
         {
