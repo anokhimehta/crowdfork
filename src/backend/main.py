@@ -161,7 +161,7 @@ async def add_favorite_restaurant(
     user_doc_ref = db.collection("users").document(user_id)
 
     try:
-        # Check if restaurant exists (optional but recommended)
+        # Check if restaurant exists 
         if not await verify_restaurant_exists(restaurant_id):
             raise HTTPException(status_code=404, detail="Restaurant not found in local DB")
 
