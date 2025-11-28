@@ -11,6 +11,9 @@ export default function SignUp() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tagline, setTagline] = useState("");
+  const [location, setLocation] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   const navigate = useNavigate();
 
@@ -34,7 +37,13 @@ export default function SignUp() {
     setLoading(true);
     setError("");
 
-    const userData = { email: email, password: pwd };
+    const userData = { 
+      email: email, 
+      password: pwd, 
+      tagline: tagline,
+      location: location,
+      image_url: imageUrl,
+    };
 
     try {
       const response = await fetch(`${API_BASE_URL}/signup`, {
@@ -106,6 +115,28 @@ export default function SignUp() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           required
+        />
+
+        <input
+          className="cf-input"
+          type="text"
+          placeholder="Location (e.g., 'San Francisco')"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        <input
+          className="cf-input"
+          type="text"
+          placeholder="Tagline (e.g., 'Foodie with a mission')"
+          value={tagline}
+          onChange={(e) => setTagline(e.target.value)}
+        />
+        <input
+          className="cf-input"
+          type="url"
+          placeholder="Profile Image URL (Optional)"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
         />
 
         {error && <div className="cf-error">{error}</div>}

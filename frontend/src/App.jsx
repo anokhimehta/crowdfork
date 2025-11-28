@@ -7,6 +7,7 @@ import ReviewForm from './pages/ReviewForm'
 import Restaurant from './pages/Restaurant'
 import Profile from './pages/Profile'
 import './App.css'
+import UserProfile from "./pages/UserProfile";
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ function AppRoutes() {
       <Route path="/review" element={<ReviewForm />} />
       <Route path="/restaurant" element={<Restaurant />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/userprofile" element={<UserProfile/>} />
     </Routes>
   );
 }

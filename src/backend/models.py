@@ -1,10 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Any
 
 
 class SignUpSchema(BaseModel):
     email: str
     password: str
+    image_url: Optional[str] = None
+    tagline: Optional[str] = None
+    location: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -82,3 +85,18 @@ class RestaurantUpdate(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
+
+
+
+class ReviewWithRestaurantInfo(BaseModel):
+    # This is the ID of the review document
+    review_id: str = Field(..., alias="id") 
+    
+    # Original review data
+    restaurant_id: str
+    rating: int
+    text: str
+    created_at: str
+    
+    # New required field: The name of the restaurant
+    restaurant_name: str

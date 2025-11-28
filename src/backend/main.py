@@ -95,8 +95,25 @@ async def get_current_user(
 async def create_an_account(user_data: SignUpSchema):
     email = user_data.email
     password = user_data.password
+    image_url = user_data.image_url
+    tagline = user_data.tagline
+    location = user_data.location
+
+    
     try:
         user = auth.create_user(email=email, password=password)
+        
+        user_doc_ref = db.collection("users").document(user.uid)
+        user_doc_ref.set({
+            "email": email,
+            "favorites": [], 
+            "created_at": datetime.utcnow().isoformat(),
+            "image_url": image_url,
+            "tagline": tagline,
+            "location": location,
+            
+        })
+        
         return JSONResponse(
             content={"message": f"User account successfully for User {user.uid}"},
             status_code=201,
@@ -134,7 +151,115 @@ async def validate_token(request: Request):
 def root():
     return {"Hello": "Worlds"}
 
+# --------------- Favorite Restaurants Operations ----------------
+@app.post("/favorites/{restaurant_id}")
+async def add_favorite_restaurant(
+    restaurant_id: str, current_user: dict = Depends(get_current_user)
+):
+    """Adds a restaurant ID to the user's favorites list."""
+    user_id = current_user["user_id"]
+    user_doc_ref = db.collection("users").document(user_id)
 
+    try:
+        # Check if restaurant exists (optional but recommended)
+        if not await verify_restaurant_exists(restaurant_id):
+            raise HTTPException(status_code=404, detail="Restaurant not found in local DB")
+
+        # Use Firestore Array Union to safely add the ID if it's not already there
+        user_doc_ref.update({
+            "favorites": firestore.ArrayUnion([restaurant_id])
+        })
+
+        return JSONResponse(
+            content={"message": f"Restaurant {restaurant_id} added to favorites"}, 
+            status_code=200
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add favorite: {str(e)}")
+
+@app.delete("/favorites/{restaurant_id}")
+async def remove_favorite_restaurant(
+    restaurant_id: str, current_user: dict = Depends(get_current_user)
+):
+    """Removes a restaurant ID from the user's favorites list."""
+    user_id = current_user["user_id"]
+    user_doc_ref = db.collection("users").document(user_id)
+
+    try:
+        # Use Firestore Array Remove to safely remove the ID
+        user_doc_ref.update({
+            "favorites": firestore.ArrayRemove([restaurant_id])
+        })
+
+        return JSONResponse(
+            content={"message": f"Restaurant {restaurant_id} removed from favorites"}, 
+            status_code=200
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to remove favorite: {str(e)}")
+
+
+@app.get("/users/me")
+async def get_user_profile(current_user: dict = Depends(get_current_user)):
+    """
+    Get the profile information of the current logged-in user, 
+    including new fields from Firestore.
+    """
+    user_id = current_user["user_id"]
+    user_doc = db.collection("users").document(user_id).get()
+
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="User profile data missing")
+
+    user_data = user_doc.to_dict()
+
+    return {
+        "user_id": user_id,
+        "email": current_user["email"],
+        "image_url": user_data.get("image_url"),
+        "tagline": user_data.get("tagline"),
+        "location": user_data.get("location"),
+    }
+
+@app.get("/users/me/favorites", response_model=List[RestaurantResponse])
+async def list_user_favorites(current_user: dict = Depends(get_current_user)):
+    """
+    Get all favorite restaurants (details) for the current logged-in user.
+    """
+    user_id = current_user["user_id"]
+    
+    try:
+        # 1. Fetch the user document to get the list of favorite IDs
+        user_doc = db.collection("users").document(user_id).get()
+        if not user_doc.exists:
+            # This should ideally not happen if signup is successful
+            raise HTTPException(status_code=404, detail="User profile not found")
+            
+        favorite_ids = user_doc.to_dict().get("favorites", [])
+        
+        if not favorite_ids:
+            return [] # User has no favorites
+
+        # 2. Batch fetch restaurant details for each favorited ID
+        restaurant_refs = [db.collection("restaurants").document(rid) for rid in favorite_ids]
+        
+        favorite_restaurants = []
+        fetched_restaurants = db.get_all(restaurant_refs)
+        
+        # 3. Compile the response
+        for doc in fetched_restaurants:
+            if doc.exists:
+                data = doc.to_dict()
+                favorite_restaurants.append(RestaurantResponse(id=doc.id, **data))
+        
+        return favorite_restaurants
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch favorites: {str(e)}")
 # ------------------ Yelp API Integration ---------------------
 
 
@@ -237,27 +362,91 @@ async def delete_review(review_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}")
 
 
-@app.get("/users/me/reviews", response_model=List[ReviewResponse])
+# @app.get("/users/me/reviews", response_model=List[ReviewResponse])
+# async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
+#     """Get all reviews by the current logged-in user"""
+
+#     try:
+#         # Query reviews by this user
+#         reviews_ref = (
+#             db.collection("reviews")
+#             .where("user_id", "==", current_user["user_id"])
+#             .order_by("created_at", direction=firestore.Query.DESCENDING)
+#             .limit(limit)
+#         )
+
+#         reviews = []
+#         for doc in reviews_ref.stream():
+#             review_data = doc.to_dict()
+#             reviews.append(ReviewResponse(id=doc.id, **review_data))
+
+#         return reviews
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
+
+
+
+# In main.py, you need to import the new model
+from models import ReviewWithRestaurantInfo # Ensure you import the new model
+
+# ... (rest of your imports and setup)
+
+@app.get("/users/me/reviews", response_model=List[ReviewWithRestaurantInfo])
 async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
-    """Get all reviews by the current logged-in user"""
+    """
+    Get all reviews by the current logged-in user, including the restaurant name.
+    """
+    user_id = current_user["user_id"]
 
     try:
-        # Query reviews by this user
+        # 1. Query for the user's reviews
         reviews_ref = (
             db.collection("reviews")
-            .where("user_id", "==", current_user["user_id"])
+            .where("user_id", "==", user_id)
             .order_by("created_at", direction=firestore.Query.DESCENDING)
             .limit(limit)
         )
+        review_docs = list(reviews_ref.stream())
 
-        reviews = []
-        for doc in reviews_ref.stream():
+        if not review_docs:
+            return []
+
+        # 2. Extract unique restaurant IDs from the reviews
+        restaurant_ids = list(set(doc.to_dict()["restaurant_id"] for doc in review_docs))
+
+        # 3. Batch fetch restaurant details by ID (more efficient than individual fetches)
+        restaurant_map = {}
+        # Create references for batch fetching
+        restaurant_refs = [db.collection("restaurants").document(rid) for rid in restaurant_ids]
+        
+        # Use get_all for highly efficient retrieval of multiple documents
+        fetched_restaurants = db.get_all(restaurant_refs)
+        for doc in fetched_restaurants:
+            if doc.exists:
+                # Map ID to the restaurant name
+                restaurant_map[doc.id] = doc.to_dict().get("name", "Unknown Restaurant")
+            # If the restaurant document was deleted, the ID won't exist
+
+        # 4. Combine review data with the restaurant name
+        enhanced_reviews = []
+        for doc in review_docs:
             review_data = doc.to_dict()
-            reviews.append(ReviewResponse(id=doc.id, **review_data))
+            restaurant_id = review_data["restaurant_id"]
+            
+            enhanced_reviews.append(
+                ReviewWithRestaurantInfo(
+                    id=doc.id, # Map to review_id in the Pydantic model
+                    restaurant_id=restaurant_id,
+                    restaurant_name=restaurant_map.get(restaurant_id, "Deleted Restaurant"),
+                    rating=review_data["rating"],
+                    text=review_data["text"],
+                    created_at=review_data["created_at"],
+                )
+            )
 
-        return reviews
+        return enhanced_reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user's reviews: {str(e)}")
 
 
 @app.get("/restaurant/{restaurant_id}/reviews", response_model=List[ReviewResponse])
