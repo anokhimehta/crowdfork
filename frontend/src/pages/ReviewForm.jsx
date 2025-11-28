@@ -1,6 +1,7 @@
 import React, {useState} from "react";
 import "./ReviewForm.css"; // styles below
 
+// export default function ReviewForm() {
 export default function ReviewForm() {
     const [overallRating, setOverallRating] = useState(0);
     const [foodRating, setFoodRating] = useState(0);
@@ -10,19 +11,90 @@ export default function ReviewForm() {
     const [recommendedDishes, setRecommendedDishes] = useState("");
     const [priceRange, setPriceRange] = useState("");
 
-    const handleSubmit = () => {
-        console.log({
-            overallRating,
-            foodRating,
-            ambienceRating,
-            serviceRating,
-            experience,
-            recommendedDishes,
-            priceRange
-        });
-        // Here you would typically handle form submission, e.g., send data to backend
-        alert("Review submitted!");
+    // const handleSubmit = () => {
+    //     console.log({
+    //         overallRating,
+    //         foodRating,
+    //         ambienceRating,
+    //         serviceRating,
+    //         experience,
+    //         recommendedDishes,
+    //         priceRange
+    //     });
+    //     // Here you would typically handle form submission, e.g., send data to backend
+    //     alert("Review submitted!");
+    // }
+
+
+
+
+    //sending review data to backend for handlesubmit:
+      const handleSubmit = async () => {
+    // 1. Get JWT token (saved during login)
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You must be logged in to submit a review.");
+      return;
     }
+    const {restaurantId} = useParams();
+    // 2. Building the payload expected by FastAPI
+    const payload = {
+      restaurant_id: restaurantId, //if we use const restaurantId, then we would need to pass the first param of the payload as:
+      //restaurantId and only that since it's JSON
+      overall_rating: overallRating,
+      food_rating: foodRating,
+      ambience_rating: ambienceRating,
+      service_rating: serviceRating,
+      experience,
+      recommended_dishes: recommendedDishes
+        ? recommendedDishes.split(",").map((s) => s.trim())
+        : [],
+      price_range: priceRange || null,
+    };
+
+    try {
+      setSubmitting(true);
+
+      const response = await fetch("http://localhost:8000/reviews", {
+        //the same thing as 127.0.0.1:8000/reviews
+        //should check with CORS for this
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // 3. Send the JWT in Authorization header
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        // 401 "Not authenticated" if token's wrong/missing
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error submitting review:", errorData);
+        alert(`Failed to submit review: ${errorData.detail || response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Review submitted successfully:", data);
+      alert("Review submitted!");
+
+      // 4. (Optional) reset form
+      setOverallRating(0);
+      setFoodRating(0);
+      setAmbienceRating(0);
+      setServiceRating(0);
+      setExperience("");
+      setRecommendedDishes("");
+      setPriceRange("");
+
+    } catch (err) {
+      console.error("Network error submitting review:", err);
+      alert("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
     //star rating component
     const StarRating = ({rating, setRating, label}) => {
