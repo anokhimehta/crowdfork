@@ -49,6 +49,9 @@ fix = true
 quote-style = "double"
 indent-style = "space"
 
+[tool.ruff.lint.per-file-ignores]
+"src/backend/main.py" = ["B008"]
+
 [tool.mypy]
 python_version = "3.10"
 strict = true
