@@ -204,6 +204,27 @@ async def get_yelp_business_details(yelp_id: str):
             detail=f"Failed to fetch details from Yelp: {str(e)}"
         )
 
+@app.get("/recommendations/trending", response_model=YelpSearchResponse)
+async def get_trending_restaurants(
+    latitude: float,
+    longitude: float,
+    limit: int = 10
+):
+    """
+    Find restaurant to populate "Top Picks" in search page
+    Uses Yelp's 'hot_and_new' attribute to find trending places.
+    """
+    try:
+        return await search_yelp(
+            latitude=latitude,
+            longitude=longitude,
+            attributes="hot_and_new", # popular businesses which recently joined Yelp
+            sort_by="best_match",
+            limit=limit
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ------- Helper function to verify restaurant existence ----------
 
 
