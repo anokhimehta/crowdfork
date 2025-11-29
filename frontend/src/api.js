@@ -125,6 +125,15 @@ export const api = {
         return response.json();
     },
 
+    async getLocalPicks(latitude, longitude, limit = 10) {
+        const params = new URLSearchParams({ latitude, longitude, limit });
+        const response = await fetch(`${API_BASE_URL}/recommendations/localpicks?${params}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to fetch local picks");
+        }
+        return response.json();
+    }
     async addFavorite(restaurantId) {
         const url = `${API_BASE_URL}/favorites/${restaurantId}`;
         const response = await fetchWithAuth(url, { method: "POST" });

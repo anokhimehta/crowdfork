@@ -155,9 +155,11 @@
   padding: 0 1.5rem 5rem;
   display: block !important;
   width: 100%;
+  max-width: 1200px;     
+  margin: 0 auto;        
 }
 
-/* Sections - MUST BE BLOCK */
+/* Sections */
 .local-picks-section {
   display: block !important;
   width: 100% !important;
@@ -189,11 +191,27 @@
 }
 
 .local-pick-card {
-  flex-shrink: 0;
-  width: 128px;
-  height: 128px;
-  background-color: #9ca3af;
-  border-radius: 8px;
+    width: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.local-pick-image {
+    width: 150px;
+    height: 150px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 12px;
+}
+
+.local-pick-title {
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    color: #333;
 }
 
 .local-picks-container::-webkit-scrollbar {

@@ -437,8 +437,8 @@ async def get_yelp_business_details(yelp_id: str):
             detail=f"Failed to fetch details from Yelp: {str(e)}"
         )
 
-@app.get("/recommendations/trending", response_model=YelpSearchResponse)
-async def get_trending_restaurants(
+@app.get("/recommendations/localpicks", response_model=YelpSearchResponse)
+async def get_localpicks_restaurants(
     latitude: float,
     longitude: float,
     limit: int = 10
