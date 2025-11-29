@@ -1,8 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
-import { api } from "../api";
+import { api} from "../api";
+
+
+const API_BASE_URL = 'http://localhost:8000'; 
+
+
+// --- API Helper Function ---
+const getAuthToken = () => localStorage.getItem('authToken');
+
+const base_api = axios.create({ baseURL: API_BASE_URL });
+base_api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -14,9 +32,18 @@ export default function Search() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const suggestionsRef = useRef(null);
-
-    const localPicks = Array(7).fill(null);
+    const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
+
+        useEffect(() => {
+        // If the user is NOT authenticated (token is missing or false)
+        if (typeof api.isAuthenticated() !== 'undefined' && !api.isAuthenticated()) {
+            // Redirect them to the login page immediately
+            navigate('/login');
+        }
+    }, [navigate]);
+
+
 
     //when user starts typing, show suggestions
     useEffect(() => {
@@ -60,6 +87,7 @@ export default function Search() {
 
     useEffect(() => {
         loadRestaurants();
+        loadLocalPicks();
     }, []);
 
     const loadRestaurants = async () => {
@@ -74,6 +102,22 @@ export default function Search() {
             setLoading(false);
         }
     };
+
+    const loadLocalPicks = async () => {
+        setLoading(true);
+        try {
+            const lat = 40.7128; // Example latitude for NYC
+            const lon = -74.0060; // Example longitude for NYC
+            const data = await api.getLocalPicks(lat, lon, 10);
+            setLocalPicks(data.businesses || []);
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Failed to load local picks");
+        } finally {
+            setLoading(false);
+        }
+    };
+    
 
     const handleSearch = async (e) => {
         if (e.key === 'Enter') {
@@ -182,8 +226,18 @@ export default function Search() {
                 <div className="local-picks-section">
                     <h2 className="section-title">Local Picks</h2>
                     <div className="local-picks-container">
-                        {localPicks.map((_, index) => (
-                            <div key={index} className="local-pick-card" />
+                        {localPicks.map((restaurant) => (
+                            <div
+                                key={restaurant.id}
+                                className="local-pick-card"
+                                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                            >
+                                <div
+                                    className="local-pick-image"
+                                    style={{ backgroundImage: `url(${restaurant.image_url || ''})` }}
+                                />
+                                <h4 className="local-pick-name">{restaurant.name}</h4>
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -245,7 +299,7 @@ export default function Search() {
 
                 <button
                     className={`nav-button ${activeTab === "saved" ? "active" : ""}`}
-                    onClick={() => setActiveTab("saved")}
+                    onClick={() => navigate("/saved")}
                 >
                     <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>

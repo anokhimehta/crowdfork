@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -41,25 +41,25 @@ class YelpBusiness(BaseModel):
     rating: float
     phone: str
     display_phone: str
-    distance: float | None = None
-    coordinates: dict[str, float]
-    location: dict[str, Any]
-    url: str | None = None
-    categories: list[dict[str, str]] = []
+    distance: Optional[float] = None
+    coordinates: Dict[str, float]
+    location: Dict[str, Any]
+    url: Optional[str] = None
+    categories: List[Dict[str, str]] = []
 
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):
-    businesses: list[YelpBusiness]
+    businesses: List[YelpBusiness]
     total: int
-    region: dict[str, Any]
+    region: Dict[str, Any]
 
 
 # Response model for Yelp autocomplete
 class YelpAutocompleteResponse(BaseModel):
-    terms: list[dict[str, str]]
-    businesses: list[dict[str, Any]]
-    categories: list[dict[str, Any]]
+    terms: List[Dict[str, str]]
+    businesses: List[Dict[str, Any]]
+    categories: List[Dict[str, Any]]
 
 
 # Yelp Business Detail model
@@ -81,11 +81,34 @@ class YelpBusinessDetail(BaseModel):
     is_closed: bool 
 
 # Function to search Yelp API
-async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchResponse:
+async def search_yelp(
+        term: str | None = None,
+        location: str | None = None, 
+        latitude: float | None = None,
+        longitude: float | None = None,
+        sort_by: str | None = None,
+        attributes: str | None = None,
+        limit: int = 10) -> YelpSearchResponse:
+    
     url = f"{YELP_API_HOST}{SEARCH_PATH}"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
-    params = {"term": term, "location": location, "limit": limit}
-    response = httpx.get(url, headers=headers, params=params)
+
+    params = {"limit": limit}
+    if term:
+        params["term"] = term
+    if location:
+        params["location"] = location
+    if latitude and longitude:
+        params["latitude"] = latitude
+        params["longitude"] = longitude
+    if sort_by:
+        params["sort_by"] = sort_by
+    if attributes:
+        params["attributes"] = attributes
+
+    # async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
     return YelpSearchResponse(**data)
@@ -101,7 +124,8 @@ async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitu
         params["longitude"] = longitude
 
     # async with httpx.AsyncClient() as client:
-    response = httpx.get(url, headers=headers, params=params)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
     return YelpAutocompleteResponse(**data)  
