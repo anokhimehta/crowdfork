@@ -29,6 +29,28 @@ export default function Restaurant() {
         }
     ];
 
+    const formatTime = (t) => {
+        const hour = parseInt(t.substring(0, 2));
+        const minute = t.substring(2);
+        const ampm = hour >= 12 ? "PM" : "AM";
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minute} ${ampm}`;
+    };
+
+    const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    const formatHours = (hoursArray) => {
+        if (!hoursArray || hoursArray.length === 0) return "Not available";
+        const openTimes = hoursArray[0].open; // Yelp always puts "open" inside hours[0]
+        const grouped = {};
+
+        openTimes.forEach(({ day, start, end }) => {
+            const dayName = dayNames[day];
+            grouped[dayName] = `${formatTime(start)} – ${formatTime(end)}`;
+        });
+        return grouped;
+    };
+
     const StarRating = ({rating}) => {
         return (
             <div className="star-rating">
@@ -142,13 +164,16 @@ export default function Restaurant() {
                             </div>
                             <div className="info-item">
                                 <span className="info-label">Hours:</span>
-                                <span className="info-text">
-                                    {restaurant?.hours?.[0]?.open
-                                        ? restaurant.hours[0].open
-                                            .map((o) => `${o.start.slice(0,2)}:${o.start.slice(2)} - ${o.end.slice(0,2)}:${o.end.slice(2)}`)
-                                            .join(", ")
-                                        : "Not available"}
-                                </span>
+                                <div className="hours-list">
+                                    {restaurant?.hours
+                                        ? Object.entries(formatHours(restaurant.hours)).map(([day, hours]) => (
+                                            <div key={day} className="hour-row">
+                                                <span className="hour-day">{day}:</span>
+                                                <span className="hour-time">{hours}</span>
+                                            </div>
+                                        ))
+                                        : "No hours listed"}
+                                </div>
                             </div>
                             <div className="info-item">
                                 <span className="info-label">Address:</span>
