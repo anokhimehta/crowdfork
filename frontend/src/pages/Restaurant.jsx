@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useCallback} from "react";
 import "./Restaurant.css"; // styles below
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api"; // needed for fetching restaurant data
@@ -11,6 +11,12 @@ export default function Restaurant() {
     const [restaurant, setRestaurant] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [favoritesError, setFavoritesError] = useState(null);
+
+      const handleGoBack = () => {
+        navigate(-1);
+    };
+
 
     const reviews = [
         {
@@ -39,9 +45,47 @@ export default function Restaurant() {
         );
     }
 
-    const toggleFavorite = () => {
-        setIsFavorited(!isFavorited);
+    const checkFavoriteStatus = useCallback(async () => {
+
+        try {
+            const response = await api.getUsersFavoritesList(); // <-- NOTE: We need a new backend endpoint for *just* the IDs
+            const favoriteIds = response.favorite_ids || [];
+            const isFav = favoriteIds.includes(id);
+            // const isFav = response.data.some(fav => fav.id === id);
+            console.log(response);
+            console.log("Favorite status for restaurant", id, "is", isFav);
+            setIsFavorited(isFav);
+
+        } catch (err) {
+           
+            setFavoritesError("Could not check favorite status. Please log in.");
+            console.error("Error checking favorite status:", err);
+        }
+    }, [id]);
+
+    const toggleFavorite = async () => {
+  
+
+        try {
+            if (isFavorited) {
+                // DELETE request to remove the favorite
+                await api.removeFavorite(id);
+                setIsFavorited(false);
+            } else {
+                // POST request to add the favorite
+                await api.addFavorite(id);
+                setIsFavorited(true);
+            }
+            setFavoritesError(null);
+        } catch (err) {
+            setFavoritesError("Failed to update favorites.");
+            console.error("Error toggling favorite:", err);
+        }
     }
+
+    // const toggleFavorite = () => {
+    //     setIsFavorited(!isFavorited);
+    // }
 
     useEffect(() => {
         // Fetch restaurant data from API
@@ -61,8 +105,9 @@ export default function Restaurant() {
 
         if (id) {
             fetchRestaurant();
+            checkFavoriteStatus(); 
         }
-    }, [id]);
+    }, [id, checkFavoriteStatus]);
 
     if (loading) {
         return <div>Loading...</div>;
@@ -78,6 +123,12 @@ export default function Restaurant() {
 
     return (
         <div className="restaurant-page">
+            <button 
+          className="back-button"
+          onClick={handleGoBack}
+      >
+          ← Go Back
+      </button>
             <div className="restaurant-detail-container">
                 {/* Header Section */}
                 <div className="restaurant-header">

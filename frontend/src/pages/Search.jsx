@@ -1,8 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
 import { api } from "../api";
+
+
+const API_BASE_URL = 'http://localhost:8000'; 
+
+
+// --- API Helper Function ---
+const getAuthToken = () => localStorage.getItem('authToken');
+
+const base_api = axios.create({ baseURL: API_BASE_URL });
+base_api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -17,6 +35,26 @@ export default function Search() {
 
     const localPicks = Array(7).fill(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+        try {
+            const response = await base_api.get('/users/me');
+            
+        } catch (err) {
+            console.error("Search Fetch Error:", err);
+            setError("Failed to load search page.");
+            // Redirect if unauthorized
+            if (err.response && err.response.status === 401) {
+                navigate('/login'); 
+            }
+        } finally {
+            setLoading(false);
+        }
+        };
+
+        fetchProfile();
+    }, [navigate]); 
 
     //when user starts typing, show suggestions
     useEffect(() => {
@@ -245,7 +283,7 @@ export default function Search() {
 
                 <button
                     className={`nav-button ${activeTab === "saved" ? "active" : ""}`}
-                    onClick={() => setActiveTab("saved")}
+                    onClick={() => navigate("/saved")}
                 >
                     <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
