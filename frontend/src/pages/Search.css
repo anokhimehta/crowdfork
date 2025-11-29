@@ -160,11 +160,11 @@
 }
 
 /* Sections */
-.local-picks-section {
+/* .local-picks-section {
   display: block !important;
   width: 100% !important;
   margin-bottom: 2rem;
-}
+} */
 
 .trending-section {
   display: block !important;
@@ -180,7 +180,7 @@
   width: 100%;
 }
 
-/* Local Picks Container */
+/* Local Picks Container
 .local-picks-container {
   display: flex;
   gap: 1rem;
@@ -230,7 +230,7 @@
 
 .local-picks-container::-webkit-scrollbar-thumb:hover {
   background: #a5b4fc;
-}
+} */
 
 
 /* Restaurant Grid - FIXED FOR HORIZONTAL LAYOUT */
