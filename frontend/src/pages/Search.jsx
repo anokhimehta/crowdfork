@@ -195,7 +195,12 @@ export default function Search() {
                     {error && <p className="error-message">{error}</p>}
                     <div className="restaurant-grid">
                         {!loading && !error && restaurants.map((restaurant) => (
-                            <div key={restaurant.id} className="restaurant-card">
+                            <div key=
+                                {restaurant.id} 
+                                className="restaurant-card"
+                                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                                style={{ cursor: 'pointer' }}
+                                >
                                 <div className="restaurant-image" style={{ backgroundImage: `url(${restaurant.image_url || ''})` }} />
                                 <div className="restaurant-info">
                                     <h3 className="restaurant-name">
