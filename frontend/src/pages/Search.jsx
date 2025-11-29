@@ -14,8 +14,7 @@ export default function Search() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const suggestionsRef = useRef(null);
-
-    const localPicks = Array(7).fill(null);
+    const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
 
     //when user starts typing, show suggestions
@@ -60,6 +59,7 @@ export default function Search() {
 
     useEffect(() => {
         loadRestaurants();
+        loadLocalPicks();
     }, []);
 
     const loadRestaurants = async () => {
@@ -74,6 +74,22 @@ export default function Search() {
             setLoading(false);
         }
     };
+
+    const loadLocalPicks = async () => {
+        setLoading(true);
+        try {
+            const lat = 40.7128; // Example latitude for NYC
+            const lon = -74.0060; // Example longitude for NYC
+            const data = await api.getLocalPicks(lat, lon, 10);
+            setLocalPicks(data.businesses || []);
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Failed to load local picks");
+        } finally {
+            setLoading(false);
+        }
+    };
+    
 
     const handleSearch = async (e) => {
         if (e.key === 'Enter') {
@@ -182,8 +198,18 @@ export default function Search() {
                 <div className="local-picks-section">
                     <h2 className="section-title">Local Picks</h2>
                     <div className="local-picks-container">
-                        {localPicks.map((_, index) => (
-                            <div key={index} className="local-pick-card" />
+                        {localPicks.map((restaurant) => (
+                            <div
+                                key={restaurant.id}
+                                className="local-pick-card"
+                                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                            >
+                                <div
+                                    className="local-pick-image"
+                                    style={{ backgroundImage: `url(${restaurant.image_url || ''})` }}
+                                />
+                                <h4 className="local-pick-name">{restaurant.name}</h4>
+                            </div>
                         ))}
                     </div>
                 </div>

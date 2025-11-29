@@ -84,5 +84,16 @@ export const api = {
             throw new Error(errorData.detail || "Failed to fetch business details");
         }
         return response.json();
+    },
+
+    async getLocalPicks(latitude, longitude, limit = 10) {
+        const params = new URLSearchParams({ latitude, longitude, limit });
+        const response = await fetch(`${API_BASE_URL}/recommendations/localpicks?${params}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to fetch local picks");
+        }
+        return response.json();
     }
+
 };
