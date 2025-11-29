@@ -222,7 +222,7 @@ export default function Search() {
 
             {/* Main Content */}
             <div className="main-content">
-                {/* Local Picks Section */}
+                {/* Local Picks Section
                 <div className="local-picks-section">
                     <h2 className="section-title">Local Picks</h2>
                     <div className="local-picks-container">
@@ -240,7 +240,7 @@ export default function Search() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </div> */}
 
                 {/* Trending Restaurants Section */}
                 <div className="trending-section">
