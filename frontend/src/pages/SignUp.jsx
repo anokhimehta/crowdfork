@@ -4,10 +4,17 @@ import Button from "../components/Button";
 import { api } from "../api";
 import "./SignUp.css"; // styles below
 
+const API_BASE_URL = "http://localhost:8000"; 
+
 export default function SignUp() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [location, setLocation] = useState("");
+  const [name, setName] = useState("");
+  // const [imageUrl, setImageUrl] = useState(""); 
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,19 +37,50 @@ export default function SignUp() {
       setError(v);
       return;
     }
+    setLoading(true);
+    setError("");
+    const userData = { 
+      email: email, 
+      password: pwd, 
+      tagline: tagline,
+      location: location,
+      name: name,
+    };
+
+
     try {
-      setLoading(true);
-      setError("");
+      const response = await fetch(`${API_BASE_URL}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
 
-      await api.signup(email, pwd);
+      const result = await response.json();
 
-      // Go to login with a success hint
-      navigate("/login", { state: { msg: "Account created. Please sign in." } });
-    } catch (err) {
-      setError(err.message);
-    } finally {
+      if (response.ok) {
+        
+        console.log("Account created:", result.message);
+        
+       
+        navigate("/login", { 
+          state: { msg: "Account successfully created. Please sign in." } 
+        });
+
+      } else {
+       
+        const errorMessage = result.detail || "Signup failed. Please try again.";
+        setError(errorMessage);
+        console.error("Signup Error:", errorMessage);
+        setLoading(false);
+      }
+    } catch (apiError) {
+      // Network failure, CORS issue, etc.
+      console.error("Network Error:", apiError);
+      setError("Could not connect to the server. Please check the API URL.");
       setLoading(false);
-    }
+    } 
   };
 
   return (
@@ -79,6 +117,36 @@ export default function SignUp() {
           onChange={(e) => setConfirm(e.target.value)}
           required
         />
+
+          <input
+          className="cf-input"
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <input
+          className="cf-input"
+          type="text"
+          placeholder="Location (e.g., 'San Francisco')"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        <input
+          className="cf-input"
+          type="text"
+          placeholder="Tagline (e.g., 'Foodie with a mission')"
+          value={tagline}
+          onChange={(e) => setTagline(e.target.value)}
+        />
+        {/* <input
+          className="cf-input"
+          type="url"
+          placeholder="Profile Image URL (Optional)"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+        /> */}
 
         {error && <div className="cf-error">{error}</div>}
 

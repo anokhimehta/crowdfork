@@ -41,25 +41,25 @@ class YelpBusiness(BaseModel):
     rating: float
     phone: str
     display_phone: str
-    distance: float | None = None
-    coordinates: dict[str, float]
-    location: dict[str, Any]
-    url: str | None = None
-    categories: list[dict[str, str]] = []
+    distance: Optional[float] = None
+    coordinates: Dict[str, float]
+    location: Dict[str, Any]
+    url: Optional[str] = None
+    categories: List[Dict[str, str]] = []
 
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):
-    businesses: list[YelpBusiness]
+    businesses: List[YelpBusiness]
     total: int
-    region: dict[str, Any]
+    region: Dict[str, Any]
 
 
 # Response model for Yelp autocomplete
 class YelpAutocompleteResponse(BaseModel):
-    terms: list[dict[str, str]]
-    businesses: list[dict[str, Any]]
-    categories: list[dict[str, Any]]
+    terms: List[Dict[str, str]]
+    businesses: List[Dict[str, Any]]
+    categories: List[Dict[str, Any]]
 
 
 # Yelp Business Detail model
