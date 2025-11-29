@@ -175,6 +175,30 @@ def root():
 
 
 # --------------- Favorite Restaurants Operations ----------------
+
+@app.get("/users/me/favorites/ids")
+async def list_user_favorite_ids(current_user: dict = Depends(get_current_user)):
+    """
+    Retrieves a list of all restaurant IDs saved as favorites by the current user.
+    """
+    user_id = current_user["user_id"]
+    
+    try:
+        user_doc = db.collection("users").document(user_id).get()
+
+        if not user_doc.exists:
+            return {"favorite_ids": []}
+        
+        favorite_ids = user_doc.to_dict().get("favorites", [])
+        print(f"Favorite IDs for user {user_id}: {favorite_ids}")
+        
+        return {"favorite_ids": favorite_ids}
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to fetch favorite IDs: {str(e)}"
+        ) from e
 @app.post("/favorites/{restaurant_id}")
 async def add_favorite_restaurant(
     restaurant_id: str, current_user: dict = Depends(get_current_user)
@@ -185,8 +209,8 @@ async def add_favorite_restaurant(
 
     try:
         # Check if restaurant exists 
-        if not await verify_restaurant_exists(restaurant_id):
-            raise HTTPException(status_code=404, detail="Restaurant not found in local DB")
+        # if not await verify_restaurant_exists(restaurant_id):
+        #     raise HTTPException(status_code=404, detail="Restaurant not found in local DB")
 
         # Use Firestore Array Union to safely add the ID if it's not already there
         user_doc_ref.update({
@@ -645,8 +669,8 @@ async def create_restaurant(restaurant: Restaurant):
         raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}") from e
 
 
-@app.get("/restaurants", response_model=list[RestaurantResponse])
-async def list_restaurants(limit: int = 20, cuisine_type: str | None = None, location: str = "NYC"):
+@app.get("/restaurants", response_model=List[RestaurantResponse])
+async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, location: str = "NYC"):
     """Get all restaurants from local db (no authentication required for browsing)"""
 
     try:

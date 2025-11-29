@@ -84,8 +84,9 @@ class YelpBusinessDetail(BaseModel):
 async def search_yelp(term: str, location: str, limit: int = 10) -> YelpSearchResponse:
     url = f"{YELP_API_HOST}{SEARCH_PATH}"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
-    params = {"term": term, "location": location, "limit": limit}
-    response = httpx.get(url, headers=headers, params=params)
+    params = {"term": str(term), "location": str(location), "limit": limit}
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
     return YelpSearchResponse(**data)
@@ -101,7 +102,8 @@ async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitu
         params["longitude"] = longitude
 
     # async with httpx.AsyncClient() as client:
-    response = httpx.get(url, headers=headers, params=params)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
     return YelpAutocompleteResponse(**data)  

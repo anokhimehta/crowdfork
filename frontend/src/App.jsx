@@ -6,6 +6,7 @@ import Search from './pages/Search'
 import ReviewForm from './pages/ReviewForm'
 import Restaurant from './pages/Restaurant'
 import Profile from './pages/Profile'
+import Saved from './pages/Saved'
 import './App.css'
 
 function AppRoutes() {
@@ -30,7 +31,7 @@ function AppRoutes() {
       {/* as in       <ReviewForm restaurantId={restaurantId} /> */}
       <Route path="/restaurant/:id" element={<Restaurant />} />
       {/* we also need to pass restaurant_id in the URL since the get restaurant needs an id  */}
-      
+      <Route path="/saved" element={<Saved />} />
       <Route path="/profile" element={<Profile />} />
     </Routes>
   );
