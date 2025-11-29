@@ -199,7 +199,7 @@ async def autocomplete_restaurants_yelp(
         ) from e
 
 
-@app.get("/search/restaurants/{yelp_id}", response_model=YelpBusinessDetail)
+@app.get("/yelp/restaurants/{yelp_id}", response_model=YelpBusinessDetail)
 async def get_yelp_business_details(yelp_id: str):
     """
     Get full details for a specific restaurant from Yelp.
@@ -397,139 +397,143 @@ async def create_restaurant(restaurant: Restaurant):
 
 
 @app.get("/restaurants", response_model=list[RestaurantResponse])
-async def list_restaurants(limit: int = 20, cuisine_type: str | None = None):
+async def list_restaurants(limit: int = 20, cuisine_type: str | None = None, location: str = "NYC"):
     """Get all restaurants from local db (no authentication required for browsing)"""
 
     try:
-        try:
-            query = db.collection("restaurants")
+        # try:
+        #     query = db.collection("restaurants")
 
-            # Filter by cuisine type if provided
-            if cuisine_type:
-                query = query.where("cuisine_type", "==", cuisine_type)
+        #     # Filter by cuisine type if provided
+        #     if cuisine_type:
+        #         query = query.where("cuisine_type", "==", cuisine_type)
 
-            query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+        #     query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
 
-            restaurants = []
-            for doc in query.stream():
-                restaurant_data = doc.to_dict()
-                restaurants.append(RestaurantResponse(id=doc.id, **restaurant_data))
+        #     restaurants = []
+        #     for doc in query.stream():
+        #         restaurant_data = doc.to_dict()
+        #         restaurants.append(RestaurantResponse(id=doc.id, **restaurant_data))
 
-            return restaurants
-        except Exception as db_error:
-            print(f"Firestore error: {db_error}. Falling back to Yelp.")
-            # Fallback to Yelp
-            yelp_results = await search_yelp(term="restaurants", location="NYC", limit=limit)
+        #     return restaurants
+        # except Exception as db_error:
+        #     print(f"Firestore error: {db_error}. Falling back to Yelp.")
+        #     # Fallback to Yelp
+        term = "restaurants"
+        if cuisine_type:
+            term = cuisine_type
 
-            mapped_restaurants = []
-            for business in yelp_results.businesses:
-                # Map Yelp business to RestaurantResponse
-                address = ", ".join(business.location.get("display_address", []))
-                cuisine = "Unknown"
-                if business.categories:
-                    cuisine = business.categories[0].get("title", "Unknown")
+        yelp_results = await search_yelp(term="restaurants", location=location, limit=limit)
 
-                mapped_restaurants.append(
-                    RestaurantResponse(
-                        id=business.id,
-                        name=business.name,
-                        address=address,
-                        cuisine_type=cuisine,
-                        description=f"Rating: {business.rating}",
-                        phone=business.phone,
-                        image_url=business.image_url,
-                        created_at=datetime.utcnow().isoformat(),
-                        updated_at=datetime.utcnow().isoformat(),
-                    )
+        mapped_restaurants: list[RestaurantResponse] = []
+        for business in yelp_results.businesses:
+            # Map Yelp business to RestaurantResponse
+            address = ", ".join(business.location.get("display_address", []))
+            cuisine = "Unknown"
+            if business.categories:
+                cuisine = business.categories[0].get("title", "Unknown")
+
+            mapped_restaurants.append(
+                RestaurantResponse(
+                    id=business.id,
+                    name=business.name,
+                    address=address,
+                    cuisine_type=cuisine,
+                    description=f"Rating: {business.rating}",
+                    phone=business.phone,
+                    image_url=business.image_url,
+                    created_at=datetime.utcnow().isoformat(),
+                    updated_at=datetime.utcnow().isoformat(),
                 )
-            return mapped_restaurants
+            )
+        return mapped_restaurants
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}") from e
 
+# we don't need this
+# @app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
+# async def get_restaurant(restaurant_id: str):
+#     """Get a specific restaurant by ID from local db (no authentication required)"""
 
-@app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
-async def get_restaurant(restaurant_id: str):
-    """Get a specific restaurant by ID from local db (no authentication required)"""
+#     try:
+#         restaurant_ref = db.collection("restaurants").document(restaurant_id)
+#         restaurant = restaurant_ref.get()
 
-    try:
-        restaurant_ref = db.collection("restaurants").document(restaurant_id)
-        restaurant = restaurant_ref.get()
+#         if not restaurant.exists:
+#             raise HTTPException(status_code=404, detail="Restaurant not found")
 
-        if not restaurant.exists:
-            raise HTTPException(status_code=404, detail="Restaurant not found")
-
-        restaurant_data = restaurant.to_dict()
-        return RestaurantResponse(id=restaurant.id, **restaurant_data)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}") from e
-
-
-@app.put("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
-async def update_restaurant(restaurant_id: str, restaurant_update: RestaurantUpdate):
-    """Update a restaurant (no authentication required)"""
-
-    try:
-        restaurant_ref = db.collection("restaurants").document(restaurant_id)
-        restaurant = restaurant_ref.get()
-
-        if not restaurant.exists:
-            raise HTTPException(status_code=404, detail="Restaurant not found")
-
-        # Build update data from non-None feilds
-        update_data = {"updated_at": datetime.utcnow().isoformat()}
-
-        if restaurant_update.name is not None:
-            update_data["name"] = restaurant_update.name
-        if restaurant_update.address is not None:
-            update_data["address"] = restaurant_update.address
-        if restaurant_update.cuisine_type is not None:
-            update_data["cuisine_type"] = restaurant_update.cuisine_type
-        if restaurant_update.description is not None:
-            update_data["description"] = restaurant_update.description
-        if restaurant_update.phone is not None:
-            update_data["phone"] = restaurant_update.phone
-
-        # Update in Firestore
-        restaurant_ref.update(update_data)
-
-        # Fetch updated restaurant
-        updated_restaurant = restaurant_ref.get()
-        restaurant_data = updated_restaurant.to_dict()
-
-        return RestaurantResponse(id=restaurant_id, **restaurant_data)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}") from e
+#         restaurant_data = restaurant.to_dict()
+#         return RestaurantResponse(id=restaurant.id, **restaurant_data)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}") from e
 
 
-@app.delete("/restaurants/{restaurant_id}")
-async def delete_restaurant(restaurant_id: str):
-    """Delete a restaurant (no authentication required)"""
+# @app.put("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
+# async def update_restaurant(restaurant_id: str, restaurant_update: RestaurantUpdate):
+#     """Update a restaurant (no authentication required)"""
 
-    try:
-        restaurant_ref = db.collection("restaurants").document(restaurant_id)
-        restaurant = restaurant_ref.get()
+#     try:
+#         restaurant_ref = db.collection("restaurants").document(restaurant_id)
+#         restaurant = restaurant_ref.get()
 
-        if not restaurant.exists:
-            raise HTTPException(status_code=404, detail="Restaurant not found")
+#         if not restaurant.exists:
+#             raise HTTPException(status_code=404, detail="Restaurant not found")
 
-        # Delete all reviews associated with this restaurant first
-        reviews_ref = db.collection("reviews").where("restaurant_id", "==", restaurant_id)
-        for review in reviews_ref.stream():
-            review.reference.delete()
+#         # Build update data from non-None feilds
+#         update_data = {"updated_at": datetime.utcnow().isoformat()}
 
-        # Delete the restaurant
-        restaurant_ref.delete()
+#         if restaurant_update.name is not None:
+#             update_data["name"] = restaurant_update.name
+#         if restaurant_update.address is not None:
+#             update_data["address"] = restaurant_update.address
+#         if restaurant_update.cuisine_type is not None:
+#             update_data["cuisine_type"] = restaurant_update.cuisine_type
+#         if restaurant_update.description is not None:
+#             update_data["description"] = restaurant_update.description
+#         if restaurant_update.phone is not None:
+#             update_data["phone"] = restaurant_update.phone
 
-        return JSONResponse(
-            content={"message": "Restaurant and associated reviews deleted successfully"},
-            status_code=200,
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}") from e
+#         # Update in Firestore
+#         restaurant_ref.update(update_data)
+
+#         # Fetch updated restaurant
+#         updated_restaurant = restaurant_ref.get()
+#         restaurant_data = updated_restaurant.to_dict()
+
+#         return RestaurantResponse(id=restaurant_id, **restaurant_data)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}") from e
+
+
+# @app.delete("/restaurants/{restaurant_id}")
+# async def delete_restaurant(restaurant_id: str):
+#     """Delete a restaurant (no authentication required)"""
+
+#     try:
+#         restaurant_ref = db.collection("restaurants").document(restaurant_id)
+#         restaurant = restaurant_ref.get()
+
+#         if not restaurant.exists:
+#             raise HTTPException(status_code=404, detail="Restaurant not found")
+
+#         # Delete all reviews associated with this restaurant first
+#         reviews_ref = db.collection("reviews").where("restaurant_id", "==", restaurant_id)
+#         for review in reviews_ref.stream():
+#             review.reference.delete()
+
+#         # Delete the restaurant
+#         restaurant_ref.delete()
+
+#         return JSONResponse(
+#             content={"message": "Restaurant and associated reviews deleted successfully"},
+#             status_code=200,
+#         )
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}") from e

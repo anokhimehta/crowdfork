@@ -56,17 +56,32 @@ export const api = {
         return response.json();
     },
 
-    async getAutoCompleteSuggestions(query) {
+    async getAutoCompleteSuggestions(query, latitude = null, longitude = null) {
         if (!query || query.trim() === "") {
             return [];  // frontend expects an array
         }
 
-        let url = `${API_BASE_URL}/autocomplete/restaurants?text=${encodeURIComponent(query)}`;
+        const params = new URLSearchParams({ text: query });
+        if (latitude !== null && longitude !== null) {
+            params.append("latitude", latitude);
+            params.append("longitude", longitude);
+        }
+
+        let url = `${API_BASE_URL}/autocomplete/restaurants?${params.toString()}`;
 
         const response = await fetch(url);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || "Failed to fetch autocomplete suggestions");
+        }
+        return response.json();
+    },
+
+    async getYelpBusinessDetails(yelpId) {
+        const response = await fetch(`${API_BASE_URL}/yelp/restaurants/${yelpId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to fetch business details");
         }
         return response.json();
     }
