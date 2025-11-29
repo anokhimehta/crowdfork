@@ -1,7 +1,46 @@
 const API_BASE_URL = "http://127.0.0.1:8000";
 
+const getAuthToken = () => {
+    return localStorage.getItem('authToken');
+};
+
+const isAuthenticated = () => {
+    return !!getAuthToken();
+};
+
+const handleUnauthorized = () => {
+    console.warn("Unauthorized access detected. Redirecting to login.");
+    localStorage.removeItem('authToken');
+    window.location.href = "/login";
+    
+    throw new Error("Session expired or unauthorized. Redirecting..."); 
+}
+
+
+const fetchWithAuth = async (url, options = {}) => {
+    const token = getAuthToken();
+    if (!token) {
+        handleUnauthorized();
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+        handleUnauthorized();
+    }
+    
+    return response;
+};
+
 export const api = {
     baseUrl: API_BASE_URL,
+
+    isAuthenticated: isAuthenticated, 
 
     async login(email, password) {
         const response = await fetch(`${API_BASE_URL}/login`, {
@@ -95,5 +134,34 @@ export const api = {
         }
         return response.json();
     }
+    async addFavorite(restaurantId) {
+        const url = `${API_BASE_URL}/favorites/${restaurantId}`;
+        const response = await fetchWithAuth(url, { method: "POST" });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to add favorite");
+        }
+        return response.json();
+    },
+
+    async removeFavorite(restaurantId) {
+        const url = `${API_BASE_URL}/favorites/${restaurantId}`;
+        const response = await fetchWithAuth(url, { method: "DELETE" });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to remove favorite");
+        }
+    },
+
+    async getUsersFavoritesList() {
+        const url = `${API_BASE_URL}/users/me/favorites/ids`;
+        const response = await fetchWithAuth(url, { method: "GET" });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to get favorites list");
+        }
+        return response.json();
+    },
+
 
 };

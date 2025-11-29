@@ -2,17 +2,18 @@ import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
+import { api } from "../api";
 
 // --- CONFIGURATION ---
 const API_BASE_URL = 'http://localhost:8000'; 
 const DEFAULT_AVATAR = "https://testingbot.com/free-online-tools/random-avatar/1"; // Hardcoded image for now
 // ---------------------
 
-// --- API Helper Function (Copied from UserProfile.jsx) ---
+// --- API Helper Function ---
 const getAuthToken = () => localStorage.getItem('authToken');
 
-const api = axios.create({ baseURL: API_BASE_URL });
-api.interceptors.request.use((config) => {
+const base_api = axios.create({ baseURL: API_BASE_URL });
+base_api.interceptors.request.use((config) => {
   const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -38,16 +39,27 @@ export default function Profile() {
     navigate(-1);
   };
 
+  const handleViewFavorites = () => {
+    navigate('/saved');
+  };
+
+    const handleSignOut = () => {
+      localStorage.removeItem('authToken');
+      navigate('/login');
+  };
+
 
   // 1. DATA FETCHING (Runs on component mount)
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get('/users/me');
-        const reviewCountRes = await api.get('/users/me/reviews/count');
+        const response = await base_api.get('/users/me');
+        const reviewCountRes = await base_api.get('/users/me/reviews/count');
+        const favoritesCountRes = await api.getUsersFavoritesList();
 
         const userData = response.data;
         const reviewCount = reviewCountRes.data.reviewCount;
+        const favoritesCount =  favoritesCountRes.favorite_ids ? favoritesCountRes.favorite_ids.length : 0;
 
         const formatDate = (isoString) => {
             if (!isoString) {
@@ -74,6 +86,7 @@ export default function Profile() {
           avatar: userData.image_url || DEFAULT_AVATAR, // Image_URL -> Avatar
           // Placeholder stats - link these to real counts later
           reviewCount: reviewCount || 0, 
+          favoritesCount: favoritesCount || 0,
         };
 
         setUser(mappedUser);
@@ -121,7 +134,7 @@ export default function Profile() {
     };
     
     try {
-      const response = await api.put('/users/me', payload);
+      const response = await base_api.put('/users/me', payload);
       
       
       const updatedUser = {
@@ -176,6 +189,7 @@ export default function Profile() {
         >
           {isEditing ? "Cancel" : "Edit Profile"}
         </button>
+
       </div>
 
       {/* Tagline Section */}
@@ -199,6 +213,13 @@ export default function Profile() {
           <p className="stat-number">{user.reviewCount}</p>
           <p className="stat-label">Reviews</p>
         </div>
+
+               
+        <div className="stat-card" onClick={handleViewFavorites} style={{ cursor: 'pointer' }}>
+          <p className="stat-number">{user.favoritesCount}</p>
+          <p className="stat-label">Favorites</p>
+        </div>
+
       </div>
 
       {/* Editable Fields Section */}
@@ -283,6 +304,15 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      <div className="profile-actions">
+          <button
+            className="action-button secondary" 
+            onClick={handleSignOut}
+          >
+            Sign Out
+          </button>
+      </div>
     
     </div>
   );
