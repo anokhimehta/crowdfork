@@ -133,7 +133,8 @@ export const api = {
             throw new Error(errorData.detail || "Failed to fetch local picks");
         }
         return response.json();
-    }
+    }, 
+    
     async addFavorite(restaurantId) {
         const url = `${API_BASE_URL}/favorites/${restaurantId}`;
         const response = await fetchWithAuth(url, { method: "POST" });
