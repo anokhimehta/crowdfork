@@ -40,6 +40,8 @@ const fetchWithAuth = async (url, options = {}) => {
 export const api = {
     baseUrl: API_BASE_URL,
 
+    isAuthenticated: isAuthenticated, 
+
     async login(email, password) {
         const response = await fetch(`${API_BASE_URL}/login`, {
             method: "POST",

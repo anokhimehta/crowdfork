@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
-import { api } from "../api";
+import { api} from "../api";
 
 
 const API_BASE_URL = 'http://localhost:8000'; 
@@ -36,25 +36,15 @@ export default function Search() {
     const localPicks = Array(7).fill(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-        try {
-            const response = await base_api.get('/users/me');
-            
-        } catch (err) {
-            console.error("Search Fetch Error:", err);
-            setError("Failed to load search page.");
-            // Redirect if unauthorized
-            if (err.response && err.response.status === 401) {
-                navigate('/login'); 
-            }
-        } finally {
-            setLoading(false);
+        useEffect(() => {
+        // If the user is NOT authenticated (token is missing or false)
+        if (typeof api.isAuthenticated() !== 'undefined' && !api.isAuthenticated()) {
+            // Redirect them to the login page immediately
+            navigate('/login');
         }
-        };
+    }, [navigate]);
 
-        fetchProfile();
-    }, [navigate]); 
+
 
     //when user starts typing, show suggestions
     useEffect(() => {
