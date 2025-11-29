@@ -1,5 +1,5 @@
 import { api } from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import React, { useState } from "react";
 import Button from "../components/Button";
 import "./Login.css";
@@ -67,6 +67,13 @@ export default function Login() {
           Sign in
         </button>
       </form>
+
+       <div className="cf-bottom-hint">
+          Don't have an account?{" "}
+          <Link className="cf-link" to="/signup">
+            Sign up.
+          </Link>
+      </div>
     </div>
   );
 }
