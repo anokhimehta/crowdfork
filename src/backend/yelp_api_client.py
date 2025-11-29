@@ -108,7 +108,7 @@ async def search_yelp(
 
     # async with httpx.AsyncClient() as client:
     async with httpx.AsyncClient() as client:
-        response = httpx.get(url, headers=headers, params=params)
+        response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
     return YelpSearchResponse(**data)
@@ -125,7 +125,7 @@ async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitu
 
     # async with httpx.AsyncClient() as client:
     async with httpx.AsyncClient() as client:
-        response = httpx.get(url, headers=headers, params=params)
+        response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
     return YelpAutocompleteResponse(**data)  
