@@ -43,6 +43,11 @@ export default function Profile() {
     navigate('/saved');
   };
 
+    const handleSignOut = () => {
+      localStorage.removeItem('authToken');
+      navigate('/login');
+  };
+
 
   // 1. DATA FETCHING (Runs on component mount)
   useEffect(() => {
@@ -184,6 +189,7 @@ export default function Profile() {
         >
           {isEditing ? "Cancel" : "Edit Profile"}
         </button>
+
       </div>
 
       {/* Tagline Section */}
@@ -298,6 +304,15 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      <div className="profile-actions">
+          <button
+            className="action-button secondary" 
+            onClick={handleSignOut}
+          >
+            Sign Out
+          </button>
+      </div>
     
     </div>
   );
