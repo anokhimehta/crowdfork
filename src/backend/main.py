@@ -135,6 +135,22 @@ def root():
     return {"Hello": "Worlds"}
 
 
+# added this for reviews and getting the user info and restaurant data, might not be needed later on
+@app.get("/users/me")
+async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get current logged-in user's profile"""
+    try:
+        # Get user from Firebase Auth
+        user = auth.get_user(current_user["user_id"])
+        
+        return {
+            "user_id": user.uid,
+            "email": user.email,
+            "display_name": user.display_name if hasattr(user, 'display_name') else None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {str(e)}")
+
 # ------------------ Yelp API Integration ---------------------
 
 

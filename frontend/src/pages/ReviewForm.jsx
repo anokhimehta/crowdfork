@@ -1,5 +1,6 @@
-import React, {useState} from "react";
+import React, {useState,useEffect} from "react";
 import "./ReviewForm.css"; // styles below
+import { useParams } from "react-router-dom";
 
 // export default function ReviewForm() {
 export default function ReviewForm() {
@@ -10,6 +11,55 @@ export default function ReviewForm() {
     const [experience, setExperience] = useState("");
     const [recommendedDishes, setRecommendedDishes] = useState("");
     const [priceRange, setPriceRange] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+
+    const {restaurantId} = useParams();
+
+    const [restaurantData, setRestaurantData] = useState(null);
+    const [userData, setUserData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    //for dynamic restaurant name and user info
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      // Fetch restaurant details
+      const restaurantResponse = await fetch(
+        `http://localhost:8000/restaurants/${restaurantId}`
+      );
+      if (restaurantResponse.ok) {
+        const restaurant = await restaurantResponse.json();
+        setRestaurantData(restaurant);
+      }
+      
+      if (token) {
+        const userResponse = await fetch(
+          `http://localhost:8000/users/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (userResponse.ok) {
+          const user = await userResponse.json();
+          setUserData(user);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [restaurantId]);
+
 
     // const handleSubmit = () => {
     //     console.log({
@@ -31,37 +81,46 @@ export default function ReviewForm() {
     //sending review data to backend for handlesubmit:
       const handleSubmit = async () => {
     // 1. Get JWT token (saved during login)
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("authToken");
     if (!token) {
       alert("You must be logged in to submit a review.");
       return;
     }
-    const {restaurantId} = useParams();
+    // const {restaurantId} = useParams();
     // 2. Building the payload expected by FastAPI
+    // const payload = {
+    //   restaurant_id: restaurantId, //if we use const restaurantId, then we would need to pass the first param of the payload as:
+    //   //restaurantId and only that since it's JSON
+    //   overall_rating: overallRating,
+    //   food_rating: foodRating,
+    //   ambience_rating: ambienceRating,
+    //   service_rating: serviceRating,
+    //   experience,
+    //   recommended_dishes: recommendedDishes
+    //     ? recommendedDishes.split(",").map((s) => s.trim())
+    //     : [],
+    //   price_range: priceRange || null,
+    // };
+
     const payload = {
-      restaurant_id: restaurantId, //if we use const restaurantId, then we would need to pass the first param of the payload as:
-      //restaurantId and only that since it's JSON
-      overall_rating: overallRating,
-      food_rating: foodRating,
-      ambience_rating: ambienceRating,
-      service_rating: serviceRating,
-      experience,
-      recommended_dishes: recommendedDishes
-        ? recommendedDishes.split(",").map((s) => s.trim())
-        : [],
-      price_range: priceRange || null,
-    };
+        restaurant_id: restaurantId, //or restaurantId
+        rating: overallRating, 
+        text: experience,  
+    }
 
     try {
       setSubmitting(true);
 
-      const response = await fetch("http://localhost:8000/reviews", {
+      const response = await fetch(`http://localhost:8000/restaurants/${restaurantId}/reviews`, {
+    //   const response = await fetch(`http://localhost:8000/reviews/${restaurantId}`, {
+        //check the url
+    //   const response = await fetch("http://localhost:8000/reviews", {
         //the same thing as 127.0.0.1:8000/reviews
         //should check with CORS for this
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // 3. Send the JWT in Authorization header
+          //JWT in auth header
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
@@ -79,14 +138,13 @@ export default function ReviewForm() {
       console.log("Review submitted successfully:", data);
       alert("Review submitted!");
 
-      // 4. (Optional) reset form
-      setOverallRating(0);
-      setFoodRating(0);
-      setAmbienceRating(0);
-      setServiceRating(0);
-      setExperience("");
-      setRecommendedDishes("");
-      setPriceRange("");
+    //   setOverallRating(0);
+    //   setFoodRating(0);
+    //   setAmbienceRating(0);
+    //   setServiceRating(0);
+    //   setExperience("");
+    //   setRecommendedDishes("");
+    //   setPriceRange("");
 
     } catch (err) {
       console.error("Network error submitting review:", err);
@@ -124,13 +182,15 @@ export default function ReviewForm() {
                 <button className="close-button" onClick={() => window.history.back()}>
                     ✕
                 </button>
-                <h1 className="restaurant-title">L'industrie Pizzeria Brooklyn</h1>
+                <h1 className="restaurant-title">
+                    {restaurantData ? restaurantData.name : "Loading..."}</h1>
             </div>
 
             {/* User Info */}
             <div className="user-info">
                 <div className="user-avatar"></div>
-                <span className="user-name">Anokhi Mehta</span>
+                <span className="user-name">
+                    {userData ? userData.email : "Anokhi Mehta"}</span>
             </div>
 
             {/* Review Form */}
