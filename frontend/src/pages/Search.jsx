@@ -182,67 +182,67 @@ export default function Search() {
     //     }
     // };
 
-      const handleSearch = async (e) => {
-        if (e.key === 'Enter') {
-            const query = searchQuery.trim();
-            const locationToUse = location.trim() ? location.trim() : "NYC";
-
-            if (query) {
-                await performSearch(query, locationToUse);
-            } else {     
-                loadRestaurants();
-            }
-        }
-    };
-
-    const handleSuggestionClick = (suggestion) => {
-        const query = suggestion.value;
-        const locationToUse = location.trim() ? location.trim() : "NYC";
-
-        setSearchQuery(query);
-        setShowSuggestions(false);
-        performSearch(query, locationToUse);
-    };
-    
-
-    // const handleSearch = async (e) => {
+    //   const handleSearch = async (e) => {
     //     if (e.key === 'Enter') {
-    //         setLoading(true);
-    //         try {
-    //             const locationToUse = location.trim() ? location.trim() : "NYC";
-    //             const query = searchQuery.trim();
-    //             if (query) {
-    //                 const data = await api.searchRestaurants(searchQuery, locationToUse);
-    //                 setRestaurants(data.businesses || []);
-    //             } else {
-    //                 loadRestaurants();
-    //             }
-    //         } catch (err) {
-    //             console.error(err);
-    //             setError("Search failed");
-    //         } finally {
-    //             setLoading(false);
+    //         const query = searchQuery.trim();
+    //         const locationToUse = location.trim() ? location.trim() : "NYC";
+
+    //         if (query) {
+    //             await performSearch(query, locationToUse);
+    //         } else {     
+    //             loadRestaurants();
     //         }
     //     }
     // };
 
     // const handleSuggestionClick = (suggestion) => {
-    //     setSearchQuery(suggestion.value);
-    //     setShowSuggestions(false);
+    //     const query = suggestion.value;
+    //     const locationToUse = location.trim() ? location.trim() : "NYC";
 
-    //     setLoading(true);
-    //     api.searchRestaurants(suggestion.value, location.trim() ? location.trim() : "NYC")
-    //         .then((data) => {
-    //             setRestaurants(data.businesses || []);
-    //         })
-    //         .catch((err) => {
-    //             console.error(err);
-    //             setError("Search failed");
-    //         })
-    //         .finally(() => {
-    //             setLoading(false);
-    //         });
+    //     setSearchQuery(query);
+    //     setShowSuggestions(false);
+    //     performSearch(query, locationToUse);
     // };
+    
+
+    const handleSearch = async (e) => {
+        if (e.key === 'Enter') {
+            setLoading(true);
+            try {
+                const locationToUse = location.trim() ? location.trim() : "NYC";
+                const query = searchQuery.trim();
+                if (query) {
+                    const data = await api.searchRestaurants(searchQuery, locationToUse);
+                    setRestaurants(data.businesses || []);
+                } else {
+                    loadRestaurants();
+                }
+            } catch (err) {
+                console.error(err);
+                setError("Search failed");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleSuggestionClick = (suggestion) => {
+        setSearchQuery(suggestion.value);
+        setShowSuggestions(false);
+
+        setLoading(true);
+        api.searchRestaurants(suggestion.value, location.trim() ? location.trim() : "NYC")
+            .then((data) => {
+                setRestaurants(data.businesses || []);
+            })
+            .catch((err) => {
+                console.error(err);
+                setError("Search failed");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    };
 
     return (
         <div className="search-container">
