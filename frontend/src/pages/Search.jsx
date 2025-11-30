@@ -35,6 +35,8 @@ export default function Search() {
     const suggestionsRef = useRef(null);
     // const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
+    const [coordinates, setCoordinates] = useState({ lat: null, lon: null });
+    const [isUsingLocation, setIsUsingLocation] = useState(false);
 
 
     // useEffect(() => {
@@ -184,33 +186,76 @@ export default function Search() {
 
     
 
-    const handleSearch = async (e) => {
-        if (e.key === 'Enter') {
-            setLoading(true);
-            try {
-                const locationToUse = location.trim() ? location.trim() : "NYC";
-                const query = searchQuery.trim();
-                if (query) {
-                    const data = await api.searchRestaurants(searchQuery, locationToUse);
-                    setRestaurants(data.businesses || []);
-                } else {
-                    loadRestaurants();
-                }
-            } catch (err) {
+
+    const handleGeolocation = () => {
+        if (!navigator.geolocation) {
+            setError("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setCoordinates({ lat: latitude, lon: longitude });
+                setLocation("Current Location"); // will set text in location box to indicate GPS usage instead of user inputed location
+                setIsUsingLocation(true);
+                setLoading(false);
+                
+            },
+            (err) => {
                 console.error(err);
-                setError("Search failed");
-            } finally {
+                setError("Unable to retrieve your location");
                 setLoading(false);
             }
+        );
+    };
+
+    const handleSearch = async (e, directLat = null, directLon = null) => {
+        // Allow calling without an event (e.g. after geolocation)
+        if (e && e.key !== 'Enter') return;
+
+        setLoading(true);
+        try {
+            const query = searchQuery.trim();
+            
+            // Determine which location data to use
+            const latToUse = directLat || (isUsingLocation ? coordinates.lat : null);
+            const lonToUse = directLon || (isUsingLocation ? coordinates.lon : null);
+            const locationToUse = location.trim();
+
+            if (query) {
+                // Pass lat/lon to the api function we updated in Step 2
+                const data = await api.searchRestaurants(
+                    query, 
+                    locationToUse, 
+                    latToUse, 
+                    lonToUse
+                );
+                setRestaurants(data.businesses || []);
+            } else {
+                loadRestaurants();
+            }
+        } catch (err) {
+            console.error(err);
+            setError("Search failed");
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleSuggestionClick = (suggestion) => {
         setSearchQuery(suggestion.value);
         setShowSuggestions(false);
-
         setLoading(true);
-        api.searchRestaurants(suggestion.value, location.trim() ? location.trim() : "NYC")
+
+        // Logic to determine if we should send coordinates, based on isUsingLocation state.
+        const latToUse = isUsingLocation ? coordinates.lat : null;
+        const lonToUse = isUsingLocation ? coordinates.lon : null;
+        const locationToUse = location.trim() ? location.trim() : "NYC"; // Default to NYC if location is empty
+
+        // passes all 4 arguments: query, location, lat, lon
+        api.searchRestaurants(suggestion.value, locationToUse, latToUse, lonToUse)
             .then((data) => {
                 setRestaurants(data.businesses || []);
             })
@@ -251,14 +296,43 @@ export default function Search() {
                         className="search-input main-input"
                     />
 
-                    <input
-                        type="text"
-                        placeholder="Location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        onKeyDown={handleSearch}
-                        className="search-input location-input"
-                    />
+                    <div className="location-wrapper">
+                        <input
+                            type="text"
+                            placeholder="Location"
+                            value={location}
+                            onChange={(e) => {
+                                setLocation(e.target.value);
+                                setIsUsingLocation(false); // Stop using GPS coords if user types
+                                setCoordinates({ lat: null, lon: null });
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleSearch(e);
+                                }
+                            }}
+                            className="search-input location-input"
+                        />
+                        
+                        <button 
+                            className={`geo-button ${isUsingLocation ? 'active' : ''}`}
+                            onClick={handleGeolocation}
+                            title="Use my current location"
+                        >
+                            {/* SVG Pin Icon */}
+                            <svg 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                            >
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {showSuggestions && searchSuggestions.length > 0 && (

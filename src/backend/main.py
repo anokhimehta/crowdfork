@@ -199,6 +199,7 @@ async def list_user_favorite_ids(current_user: dict = Depends(get_current_user))
             status_code=500, 
             detail=f"Failed to fetch favorite IDs: {str(e)}"
         ) from e
+    
 @app.post("/favorites/{restaurant_id}")
 async def add_favorite_restaurant(
     restaurant_id: str, current_user: dict = Depends(get_current_user)
@@ -374,21 +375,35 @@ async def list_user_favorites(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch favorites: {str(e)}")
 # ------------------ Yelp API Integration ---------------------
 
-
 @app.get("/search/restaurants", response_model=YelpSearchResponse)
 async def search_restaurants_yelp(
     term: str = Query(..., description="Search term, e.g., 'pizza'"),
-    location: str = Query(..., description="Location, e.g., 'NYC' or 'San Francisco'"),
+    location: Optional[str] = Query(None, description="Location, e.g., 'NYC'"), 
+    latitude: Optional[float] = Query(None, description="Latitude"), 
+    longitude: Optional[float] = Query(None, description="Longitude") 
 ):
     """
-    Search for restaurants using the Yelp API.
+    Search for restaurants using the Yelp API. 
+    Accepts either a location string OR latitude/longitude.
     """
     try:
-        yelp_results = await search_yelp(term=term, location=location, limit=20)
+        # If no location and no coordinates are provided, default to NYC
+        if not location and (latitude is None or longitude is None):
+            location = "NYC"
+
+        if location == "Current Location" and (latitude is None or longitude is None):
+            location = "NYC"
+
+        yelp_results = await search_yelp(
+            term=term, 
+            location=location, 
+            latitude=latitude, 
+            longitude=longitude, 
+            limit=20
+        )
         return yelp_results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}") from e
-
 
 @app.get("/recommendations/nearby", response_model=YelpSearchResponse)
 async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
