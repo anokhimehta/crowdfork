@@ -12,6 +12,7 @@ export default function Restaurant() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [favoritesError, setFavoritesError] = useState(null);
+    const [recs, setRecs] = useState([]);
 
       const handleGoBack = () => {
         navigate(-1);
@@ -86,7 +87,6 @@ export default function Restaurant() {
     }, [id]);
 
     const toggleFavorite = async () => {
-  
 
         try {
             if (isFavorited) {
@@ -105,9 +105,6 @@ export default function Restaurant() {
         }
     }
 
-    // const toggleFavorite = () => {
-    //     setIsFavorited(!isFavorited);
-    // }
 
     useEffect(() => {
         // Fetch restaurant data from API
@@ -116,6 +113,10 @@ export default function Restaurant() {
                 setLoading(true);
                 const data = await api.getYelpBusinessDetails(id);
                 setRestaurant(data);
+
+                const recData = await api.getSimilarRestaurants(id, 5);
+                setRecs(recData);
+
                 setError(null);
             } catch (err) {
                 setError(err.message);
@@ -261,10 +262,29 @@ export default function Restaurant() {
                         {/* Recommendations Section */}
                         <div className="recommendations">
                             <h3>You might also like...</h3>
-                            <div className="recommendation-buttons">
-                                <button className="recommendation-button">Lucali</button>
-                                <button className="recommendation-button">Slicehaus</button>
-                                <button className="recommendation-button">Mama's TOO</button>
+                            <div className="recommendation-list">
+                                {recs.length === 0 ? (
+                                    <p>No similar restaurants found.</p>
+                                ) : (
+                                    recs.map((rec) => (
+                                        <div 
+                                            key={rec.id} 
+                                            className="recommendation-card"
+                                            onClick={() => navigate(`/restaurant/${rec.id}`)}
+                                        >
+                                            <img 
+                                                src={rec.image_url || ""} 
+                                                alt={rec.name} 
+                                                className="recommendation-img" 
+                                            />
+                                            <div className="recommendation-info">
+                                                <h4 className="rec-name">{rec.name}</h4>
+                                                <p className="rec-rating">⭐ {rec.rating} ({rec.review_count})</p>
+                                                {rec.price && <p className="rec-price">{rec.price}</p>}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
