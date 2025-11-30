@@ -301,12 +301,10 @@
   padding: 0;
 }
 
-.restaurant-review {
-  font-size: 0.85rem;
-  color: #9ca3af;
-  font-style: italic;
-  margin: 0;
-  padding: 0;
+.card-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 @media (max-width: 768px) {
