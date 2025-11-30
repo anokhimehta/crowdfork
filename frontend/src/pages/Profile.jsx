@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import "./Profile.css";
 import { api } from "../api";
 
@@ -25,6 +25,8 @@ base_api.interceptors.request.use((config) => {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const locationHook = useLocation();
+  const [searchParams] = useSearchParams(locationHook.search); 
   // State for the authenticated user's data (read-only state)
   const [user, setUser] = useState(null); 
   // State for the editable form data
@@ -35,9 +37,19 @@ export default function Profile() {
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
+
   const handleGoBack = () => {
-    navigate(-1);
-  };
+       const fromQuery = searchParams.get('fromQ');
+        const fromLocation = searchParams.get('fromL');
+        
+        if (fromQuery) {
+            // If we have saved search data, navigate back to search with the state preserved in the URL
+            navigate(`/search?q=${fromQuery}&loc=${fromLocation}`);
+        } else {
+            // Default browser back if no search data was saved
+            navigate(-1);
+        }
+    };
 
   const handleViewFavorites = () => {
     navigate('/saved');

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useSearchParams  } from "react-router-dom";
 import axios from 'axios';
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
@@ -23,6 +23,7 @@ base_api.interceptors.request.use((config) => {
 
 
 export default function Search() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchSuggestions, setSearchSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -35,13 +36,59 @@ export default function Search() {
     // const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
 
-        useEffect(() => {
-        // If the user is NOT authenticated (token is missing or false)
-        if (typeof api.isAuthenticated() !== 'undefined' && !api.isAuthenticated()) {
-            // Redirect them to the login page immediately
-            navigate('/login');
+
+    // useEffect(() => {
+    //     // If the user is NOT authenticated (token is missing or false)
+    //     if (typeof api.isAuthenticated() !== 'undefined' && !api.isAuthenticated()) {
+    //         // Redirect them to the login page immediately
+    //         navigate('/login');
+    //     }
+    // }, [navigate]);
+
+     const performSearch = useCallback(async (term, loc) => {
+        if (!api.isAuthenticated()) { 
+            setError("Please log in to perform searches.");
+            setLoading(false);
+            return;
         }
-    }, [navigate]);
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const data = await api.searchRestaurants(term, loc); 
+            setRestaurants(data.businesses || []);
+            
+            setSearchParams({ q: term, loc: loc });
+            
+        } catch (err) {
+            console.error(err);
+            setError("Search failed");
+            setRestaurants([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [setSearchParams]);
+    
+    useEffect(() => {
+        if (typeof api.isAuthenticated !== 'undefined' && !api.isAuthenticated()) {
+            navigate('/login');
+            return;
+        }
+
+        const query = searchParams.get('q');
+        const loc = searchParams.get('loc');
+        
+        if (query) {
+           
+            setSearchQuery(query);
+            setLocation(loc || "NYC");
+            performSearch(query, loc || "NYC");
+        } else {
+            
+            loadRestaurants();
+        }
+    }, [navigate, searchParams, performSearch]);
 
 
 
@@ -134,46 +181,68 @@ export default function Search() {
     //         setLoading(false);
     //     }
     // };
-    
 
-    const handleSearch = async (e) => {
+      const handleSearch = async (e) => {
         if (e.key === 'Enter') {
-            setLoading(true);
-            try {
-                const locationToUse = location.trim() ? location.trim() : "NYC";
-                const query = searchQuery.trim();
-                if (query) {
-                    const data = await api.searchRestaurants(searchQuery, locationToUse);
-                    setRestaurants(data.businesses || []);
-                } else {
-                    loadRestaurants();
-                }
-            } catch (err) {
-                console.error(err);
-                setError("Search failed");
-            } finally {
-                setLoading(false);
+            const query = searchQuery.trim();
+            const locationToUse = location.trim() ? location.trim() : "NYC";
+
+            if (query) {
+                await performSearch(query, locationToUse);
+            } else {     
+                loadRestaurants();
             }
         }
     };
 
     const handleSuggestionClick = (suggestion) => {
-        setSearchQuery(suggestion.value);
-        setShowSuggestions(false);
+        const query = suggestion.value;
+        const locationToUse = location.trim() ? location.trim() : "NYC";
 
-        setLoading(true);
-        api.searchRestaurants(suggestion.value, location.trim() ? location.trim() : "NYC")
-            .then((data) => {
-                setRestaurants(data.businesses || []);
-            })
-            .catch((err) => {
-                console.error(err);
-                setError("Search failed");
-            })
-            .finally(() => {
-                setLoading(false);
-            });
+        setSearchQuery(query);
+        setShowSuggestions(false);
+        performSearch(query, locationToUse);
     };
+    
+
+    // const handleSearch = async (e) => {
+    //     if (e.key === 'Enter') {
+    //         setLoading(true);
+    //         try {
+    //             const locationToUse = location.trim() ? location.trim() : "NYC";
+    //             const query = searchQuery.trim();
+    //             if (query) {
+    //                 const data = await api.searchRestaurants(searchQuery, locationToUse);
+    //                 setRestaurants(data.businesses || []);
+    //             } else {
+    //                 loadRestaurants();
+    //             }
+    //         } catch (err) {
+    //             console.error(err);
+    //             setError("Search failed");
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     }
+    // };
+
+    // const handleSuggestionClick = (suggestion) => {
+    //     setSearchQuery(suggestion.value);
+    //     setShowSuggestions(false);
+
+    //     setLoading(true);
+    //     api.searchRestaurants(suggestion.value, location.trim() ? location.trim() : "NYC")
+    //         .then((data) => {
+    //             setRestaurants(data.businesses || []);
+    //         })
+    //         .catch((err) => {
+    //             console.error(err);
+    //             setError("Search failed");
+    //         })
+    //         .finally(() => {
+    //             setLoading(false);
+    //         });
+    // };
 
     return (
         <div className="search-container">
@@ -269,7 +338,7 @@ export default function Search() {
                             <div key=
                                 {restaurant.id} 
                                 className="restaurant-card"
-                                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                                onClick={() => navigate(`/restaurant/${restaurant.id}?fromQ=${encodeURIComponent(searchQuery)}&fromL=${encodeURIComponent(location)}`)}
                                 style={{ cursor: 'pointer' }}
                                 >
                                 <div className="restaurant-image" style={{ backgroundImage: `url(${restaurant.image_url || ''})` }} />
