@@ -75,6 +75,51 @@
   flex: 1;
 }
 
+.location-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.location-input {
+  width: 100%;
+  padding-right: 40px; /* Space for the pin icon */
+}
+
+.geo-button {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  transition: color 0.2s;
+}
+
+.geo-button:hover {
+  color: #3b82f6;
+}
+
+.geo-button.active {
+  color: #3b82f6; /* Blue pin when active */
+  animation: bounce 0.5s;
+}
+
+.geo-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
 /* Suggestions Dropdown */
 .suggestions-dropdown {
   position: absolute;

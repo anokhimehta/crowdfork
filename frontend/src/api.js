@@ -72,8 +72,18 @@ export const api = {
         return response.json();
     },
 
-    async searchRestaurants(term, location) {
-        const params = new URLSearchParams({ term, location });
+    async searchRestaurants(term, location, latitude = null, longitude = null) {
+        const params = new URLSearchParams({ term });
+        
+        // If we have coordinates use them. Otherwise use the location string.
+        if (latitude && longitude) {
+            params.append("latitude", latitude);
+            params.append("longitude", longitude);
+        } else {
+            // Default to NYC if location is empty and no coordinatess provided
+            params.append("location", location || "NYC"); 
+        }
+
         const response = await fetch(`${API_BASE_URL}/search/restaurants?${params}`);
         if (!response.ok) {
             const errorData = await response.json();
