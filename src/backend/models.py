@@ -1,10 +1,13 @@
-from pydantic import BaseModel
-from typing import Optional, List, Any
+from pydantic import BaseModel, Field
+from typing import Optional, Any
 
 
 class SignUpSchema(BaseModel):
     email: str
     password: str
+    name: Optional[str] = None
+    tagline: Optional[str] = None
+    location: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -52,6 +55,7 @@ class Restaurant(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
+    image_url: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -61,6 +65,7 @@ class Restaurant(BaseModel):
                 "cuisine_type": "Italian",
                 "description": "Best pizza in town!",
                 "phone": "+1-555-0123",
+                "image_url": "http://example.com/image.jpg",
             }
         }
 
@@ -72,6 +77,7 @@ class RestaurantResponse(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -82,3 +88,28 @@ class RestaurantUpdate(BaseModel):
     cuisine_type: Optional[str] = None
     description: Optional[str] = None
     phone: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+
+class ReviewWithRestaurantInfo(BaseModel):
+    # This is the ID of the review document
+    review_id: str = Field(..., alias="id") 
+    
+    # Original review data
+    restaurant_id: str
+    rating: int
+    text: str
+    created_at: str
+    
+    # New required field: The name of the restaurant
+    restaurant_name: str
+
+
+
+class UserUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    tagline: Optional[str] = None 
+    location: Optional[str] = None
+    image_url: Optional[str] = None
