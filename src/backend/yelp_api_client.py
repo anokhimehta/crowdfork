@@ -140,7 +140,7 @@ async def get_business_details(yelp_id: str) -> YelpBusinessDetail:
         raise Exception("YELP_API_KEY is not configured.")
         
     # Endpoint: /v3/businesses/{id}
-    url = f"{YELP_API_HOST}{BUSINESS_DETAILS_PATH}/{yelp_id}"
+    url = f"{YELP_API_HOST}{BUSINESS_DETAILS_PATH}/{yelp_id}?locale=en_US"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
 
     async with httpx.AsyncClient() as client:
@@ -148,6 +148,11 @@ async def get_business_details(yelp_id: str) -> YelpBusinessDetail:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
             data = response.json()
+
+            if not data.get("photos") or len(data["photos"]) == 0:
+                if data.get("image_url"):
+                    data["photos"] = [data["image_url"]]
+                    
             return YelpBusinessDetail(**data)
         except Exception as e:
             print(f"Yelp Detail Error: {e}")
