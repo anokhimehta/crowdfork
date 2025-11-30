@@ -1,10 +1,13 @@
 import React, {useEffect, useState, useCallback} from "react";
 import "./Restaurant.css"; // styles below
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import { api } from "../api"; // needed for fetching restaurant data
 
 export default function Restaurant() {
     const navigate = useNavigate();
+    const locationHook = useLocation();
+    const [searchParams] = useSearchParams(locationHook.search); 
+
     const { id } = useParams();
     const [activeImage, setActiveImage] = useState(0);
     const [isFavorited, setIsFavorited] = useState(false);
@@ -13,8 +16,17 @@ export default function Restaurant() {
     const [error, setError] = useState(null);
     const [favoritesError, setFavoritesError] = useState(null);
 
-      const handleGoBack = () => {
-        navigate(-1);
+    const handleGoBack = () => {
+       const fromQuery = searchParams.get('fromQ');
+        const fromLocation = searchParams.get('fromL');
+        
+        if (fromQuery) {
+            // If we have saved search data, navigate back to search with the state preserved in the URL
+            navigate(`/search?q=${fromQuery}&loc=${fromLocation}`);
+        } else {
+            // Default browser back if no search data was saved
+            navigate(-1);
+        }
     };
 
 

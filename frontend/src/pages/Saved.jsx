@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams  } from "react-router-dom";
 import { api } from "../api"; 
 import './Saved.css';
 
@@ -78,13 +78,25 @@ const FavoriteRestaurantCard = ({ restaurant, onToggleFavorite }) => {
 
 export default function FavoritesPage() {
     const navigate = useNavigate();
+    const locationHook = useLocation();
+    const [searchParams] = useSearchParams(locationHook.search); 
     const [favorites, setFavorites] = useState([]); 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const handleGoBack = () => {
-        navigate(-1);
+const handleGoBack = () => {
+       const fromQuery = searchParams.get('fromQ');
+        const fromLocation = searchParams.get('fromL');
+        
+        if (fromQuery) {
+            // If we have saved search data, navigate back to search with the state preserved in the URL
+            navigate(`/search?q=${fromQuery}&loc=${fromLocation}`);
+        } else {
+            // Default browser back if no search data was saved
+            navigate(-1);
+        }
     };
+
 
 
     const fetchFavorites = useCallback(async () => {
