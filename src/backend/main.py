@@ -1,41 +1,33 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Query
-from pydantic import BaseModel
-from typing import Optional, List, Any
-
-from fastapi.requests import Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from datetime import datetime
+from typing import Any
+
 import firebase_admin
 import firebaseconfig as firebaseconfig
 import pyrebase
 from dotenv import load_dotenv
-
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, credentials, firestore
 from models import (
     LoginSchema,
     Restaurant,
     RestaurantResponse,
-    RestaurantUpdate,
-    Review,
+    ReviewCreate,
     ReviewResponse,
     ReviewWithRestaurantInfo,
     SignUpSchema,
     UserUpdateSchema,
-    
 )
 from yelp_api_client import (
     YelpAutocompleteResponse,
+    YelpBusinessDetail,
     YelpSearchResponse,
     autocomplete_yelp,
+    get_business_details,
     search_yelp,
-    YelpSearchQuery,
-    YelpBusinessDetail,
-    get_business_details
 )
-from typing import List, Optional
 
 # Load environment variables from .env file
 load_dotenv()
@@ -117,25 +109,25 @@ async def create_an_account(user_data: SignUpSchema):
     tagline = user_data.tagline
     location = user_data.location
     current_time = datetime.utcnow().isoformat()
-    
+
     try:
         user = auth.create_user(email=email, password=password)
-        
+
         user_doc_ref = db.collection("users").document(user.uid)
-        user_doc_ref.set({
-            "email": email,
-            "favorites": [], 
-            "created_at": datetime.utcnow().isoformat(),
-            # "image_url": image_url,
-            "name": name,
-            "tagline": tagline,
-            "location": location,
-            "created_at": current_time, 
-            "joined_date": current_time,
-            
-            
-        })
-        
+        user_doc_ref.set(
+            {
+                "email": email,
+                "favorites": [],
+                # "created_at": datetime.utcnow().isoformat(),
+                # "image_url": image_url,
+                "name": name,
+                "tagline": tagline,
+                "location": location,
+                "created_at": current_time,
+                "joined_date": current_time,
+            }
+        )
+
         return JSONResponse(
             content={"message": f"User account successfully for User {user.uid}"},
             status_code=201,
@@ -181,16 +173,18 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
     try:
         # Get user from Firebase Auth
         user = auth.get_user(current_user["user_id"])
-        
+
         return {
             "user_id": user.uid,
             "email": user.email,
-            "display_name": user.display_name if hasattr(user, 'display_name') else None,
+            "display_name": user.display_name if hasattr(user, "display_name") else None,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {str(e)}") from e
+
 
 # --------------- Favorite Restaurants Operations ----------------
+
 
 @app.get("/users/me/favorites/ids")
 async def list_user_favorite_ids(current_user: dict = Depends(get_current_user)):
@@ -198,23 +192,24 @@ async def list_user_favorite_ids(current_user: dict = Depends(get_current_user))
     Retrieves a list of all restaurant IDs saved as favorites by the current user.
     """
     user_id = current_user["user_id"]
-    
+
     try:
         user_doc = db.collection("users").document(user_id).get()
 
         if not user_doc.exists:
             return {"favorite_ids": []}
-        
+
         favorite_ids = user_doc.to_dict().get("favorites", [])
         print(f"Favorite IDs for user {user_id}: {favorite_ids}")
-        
+
         return {"favorite_ids": favorite_ids}
-        
+
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to fetch favorite IDs: {str(e)}"
+            status_code=500, detail=f"Failed to fetch favorite IDs: {str(e)}"
         ) from e
+
+
 @app.post("/favorites/{restaurant_id}")
 async def add_favorite_restaurant(
     restaurant_id: str, current_user: dict = Depends(get_current_user)
@@ -224,23 +219,21 @@ async def add_favorite_restaurant(
     user_doc_ref = db.collection("users").document(user_id)
 
     try:
-        # Check if restaurant exists 
+        # Check if restaurant exists
         # if not await verify_restaurant_exists(restaurant_id):
         #     raise HTTPException(status_code=404, detail="Restaurant not found in local DB")
 
         # Use Firestore Array Union to safely add the ID if it's not already there
-        user_doc_ref.update({
-            "favorites": firestore.ArrayUnion([restaurant_id])
-        })
+        user_doc_ref.update({"favorites": firestore.ArrayUnion([restaurant_id])})
 
         return JSONResponse(
-            content={"message": f"Restaurant {restaurant_id} added to favorites"}, 
-            status_code=200
+            content={"message": f"Restaurant {restaurant_id} added to favorites"}, status_code=200
         )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to add favorite: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add favorite: {str(e)}") from e
+
 
 @app.delete("/favorites/{restaurant_id}")
 async def remove_favorite_restaurant(
@@ -252,17 +245,18 @@ async def remove_favorite_restaurant(
 
     try:
         # Use Firestore Array Remove to safely remove the ID
-        user_doc_ref.update({
-            "favorites": firestore.ArrayRemove([restaurant_id])
-        })
+        user_doc_ref.update({"favorites": firestore.ArrayRemove([restaurant_id])})
 
         return JSONResponse(
-            content={"message": f"Restaurant {restaurant_id} removed from favorites"}, 
-            status_code=200
+            content={"message": f"Restaurant {restaurant_id} removed from favorites"},
+            status_code=200,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to remove favorite: {str(e)}")
-#--------------- User Profile Operations ----------------
+        raise HTTPException(status_code=500, detail=f"Failed to remove favorite: {str(e)}") from e
+
+
+# --------------- User Profile Operations ----------------
+
 
 @app.put("/users/me")
 async def update_user_profile(
@@ -271,7 +265,7 @@ async def update_user_profile(
     """Update the current user's profile details in Firestore."""
     user_id = current_user["user_id"]
     user_doc_ref = db.collection("users").document(user_id)
-    
+
     update_data = {}
 
     # Map frontend fields to Firestore fields
@@ -289,27 +283,32 @@ async def update_user_profile(
         try:
             auth.update_user(user_id, email=user_update.email)
             update_data["email"] = user_update.email
-        except auth.EmailAlreadyExistsError:
-            raise HTTPException(status_code=400, detail="Email is already in use by another account.")
+        except auth.EmailAlreadyExistsError as e:
+            raise HTTPException(
+                status_code=400, detail="Email is already in use by another account."
+            ) from e
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to update email in Auth: {str(e)}")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to update email in Auth: {str(e)}"
+            ) from e
 
     if not update_data:
         return JSONResponse(content={"message": "No data provided for update."}, status_code=200)
 
     try:
         user_doc_ref.update(update_data)
-        
+
         updated_doc = user_doc_ref.get().to_dict()
-        return {**current_user, **updated_doc} # Merge current token info with new Firestore data
-        
+        return {**current_user, **updated_doc}  # Merge current token info with new Firestore data
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database update failed: {str(e)}") from e
+
 
 @app.get("/users/me")
 async def get_user_profile(current_user: dict = Depends(get_current_user)):
     """
-    Get the profile information of the current logged-in user, 
+    Get the profile information of the current logged-in user,
     including new fields from Firestore.
     """
     user_id = current_user["user_id"]
@@ -330,6 +329,7 @@ async def get_user_profile(current_user: dict = Depends(get_current_user)):
         "image_url": user_data.get("image_url"),
     }
 
+
 @app.get("/users/me/reviews/count")
 async def get_user_reviews_count(current_user: dict = Depends(get_current_user)):
     """
@@ -338,56 +338,59 @@ async def get_user_reviews_count(current_user: dict = Depends(get_current_user))
     user_id = current_user["user_id"]
 
     try:
-
         reviews_ref = db.collection("reviews").where("user_id", "==", user_id)
-    
+
         count = 0
         for _ in reviews_ref.stream():
             count += 1
-            
-        return {"reviewCount": count}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch review count: {str(e)}") from e
-    
 
-@app.get("/users/me/favorites", response_model=List[RestaurantResponse])
+        return {"reviewCount": count}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch review count: {str(e)}"
+        ) from e
+
+
+@app.get("/users/me/favorites", response_model=list[RestaurantResponse])
 async def list_user_favorites(current_user: dict = Depends(get_current_user)):
     """
     Get all favorite restaurants (details) for the current logged-in user.
     """
     user_id = current_user["user_id"]
-    
+
     try:
         # 1. Fetch the user document to get the list of favorite IDs
         user_doc = db.collection("users").document(user_id).get()
         if not user_doc.exists:
             # This should ideally not happen if signup is successful
             raise HTTPException(status_code=404, detail="User profile not found")
-            
+
         favorite_ids = user_doc.to_dict().get("favorites", [])
-        
+
         if not favorite_ids:
-            return [] # User has no favorites
+            return []  # User has no favorites
 
         # 2. Batch fetch restaurant details for each favorited ID
         restaurant_refs = [db.collection("restaurants").document(rid) for rid in favorite_ids]
-        
+
         favorite_restaurants = []
         fetched_restaurants = db.get_all(restaurant_refs)
-        
+
         # 3. Compile the response
         for doc in fetched_restaurants:
             if doc.exists:
                 data = doc.to_dict()
                 favorite_restaurants.append(RestaurantResponse(id=doc.id, **data))
-        
+
         return favorite_restaurants
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch favorites: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch favorites: {str(e)}") from e
+
+
 # ------------------ Yelp API Integration ---------------------
 
 
@@ -418,18 +421,19 @@ async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
-    
-@app.get("/restaurants/similar/{restaurant_id}", response_model=List[dict])
+
+
+@app.get("/restaurants/similar/{restaurant_id}", response_model=list[dict])
 async def get_similar_restaurants(restaurant_id: str):
     """
-    Get 3 similar restaurants. 
+    Get 3 similar restaurants.
     Prioritizes Lat/Lon, falls back to address text if cordinates are missing.
     """
     try:
         source_restaurant = await get_business_details(restaurant_id)
-        
+
         if not source_restaurant.categories:
-             # If no category, we can't really match "similar", so return empty
+            # If no category, we can't really match "similar", so return empty
             return []
 
         # Obtain the category to search for reaturants of similar genre (e.g., "Pizza")
@@ -438,45 +442,48 @@ async def get_similar_restaurants(restaurant_id: str):
         # Extract Location Data for presise searching
         lat = source_restaurant.coordinates.get("latitude")
         lon = source_restaurant.coordinates.get("longitude")
-        
+
         search_location = None
 
         # Check if we have valid coordinates
         if lat is None or lon is None:
-            # FALLBACK: Build a text address from the location dict. Use Yelps 'display_address' as a list like ["123 Main St", "New York, NY"]
+            # FALLBACK: Build a text address from the location dict.
+            # Use Yelps 'display_address' as a list like ["123 Main St", "New York, NY"]
             address_list = source_restaurant.location.get("display_address", [])
             if address_list:
                 search_location = ", ".join(address_list)
             else:
                 # Ultimate fallback if restaurant has NO address and NO coords
-                search_location = "NYC" 
-        
+                search_location = "NYC"
+
         # Search Yelp (If lat/lon are None, it uses search_location.)
         search_results = await search_yelp(
             term=category_term,
             latitude=lat,
             longitude=lon,
             location=search_location,
-            limit=5, 
-            sort_by="rating"
+            limit=5,
+            sort_by="rating",
         )
 
         # Filter out the original restaurant and return top 3
         recommendations = []
         for business in search_results.businesses:
             if business.id != restaurant_id:
-                recommendations.append({
-                    "id": business.id,
-                    "name": business.name,
-                    "image_url": business.image_url,
-                    "rating": business.rating,
-                    "price": getattr(business, "price", None),
-                    "review_count": business.review_count
-                })
-                
+                recommendations.append(
+                    {
+                        "id": business.id,
+                        "name": business.name,
+                        "image_url": business.image_url,
+                        "rating": business.rating,
+                        "price": getattr(business, "price", None),
+                        "review_count": business.review_count,
+                    }
+                )
+
             if len(recommendations) >= 3:
                 break
-        
+
         return recommendations
 
     except Exception as e:
@@ -487,8 +494,8 @@ async def get_similar_restaurants(restaurant_id: str):
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
 async def autocomplete_restaurants_yelp(
     text: str = Query(..., min_length=1, description="Partial text to autocomplete, e.g., 'piz'"),
-    latitude: Optional[float] = Query(None, description="Latitude for location biasing"),
-    longitude: Optional[float] = Query(None, description="Longitude for location biasing")
+    latitude: float | None = Query(None, description="Latitude for location biasing"),
+    longitude: float | None = Query(None, description="Longitude for location biasing"),
 ):
     """
     Autocomplete keywords/category/resturant names using the Yelp API.
@@ -513,16 +520,12 @@ async def get_yelp_business_details(yelp_id: str):
         return await get_business_details(yelp_id)
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch details from Yelp: {str(e)}"
-        )
+            status_code=500, detail=f"Failed to fetch details from Yelp: {str(e)}"
+        ) from e
+
 
 @app.get("/recommendations/localpicks", response_model=YelpSearchResponse)
-async def get_localpicks_restaurants(
-    latitude: float,
-    longitude: float,
-    limit: int = 10
-):
+async def get_localpicks_restaurants(latitude: float, longitude: float, limit: int = 10):
     """
     Find restaurant to populate "Top Picks" in search page
     Uses Yelp's 'hot_and_new' attribute to find trending places.
@@ -531,12 +534,13 @@ async def get_localpicks_restaurants(
         return await search_yelp(
             latitude=latitude,
             longitude=longitude,
-            attributes="hot_and_new", # popular businesses which recently joined Yelp
+            attributes="hot_and_new",  # popular businesses which recently joined Yelp
             sort_by="best_match",
-            limit=limit
+            limit=limit,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # ------- Helper function to verify restaurant existence ----------
 
@@ -557,7 +561,7 @@ async def verify_restaurant_exists(restaurant_id: str) -> bool:
 
 @app.post("/restaurants/{restaurant_id}/reviews", response_model=ReviewResponse)
 async def create_review(
-    restaurant_id: str, review: Review, current_user: dict = Depends(get_current_user)
+    restaurant_id: str, review: ReviewCreate, current_user: dict = Depends(get_current_user)
 ) -> Any:
     """Create a review for a specific restaurant (requires authentication)"""
 
@@ -583,6 +587,19 @@ async def create_review(
             "user_id": current_user["user_id"],
             "rating": review.rating,
             "text": review.text,
+            "created_at": datetime.utcnow().isoformat(),
+        }
+
+        review_data = {
+            "restaurant_id": restaurant_id,
+            "user_id": current_user["user_id"],
+            "rating": review.rating,
+            "food_rating": review.food_rating,
+            "ambience_rating": review.ambience_rating,
+            "service_rating": review.service_rating,
+            "text": review.text,
+            "recommended_dishes": review.recommended_dishes,
+            "price_range": review.price_range,
             "created_at": datetime.utcnow().isoformat(),
         }
 
@@ -622,8 +639,7 @@ async def delete_review(review_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=500, detail=f"Failed to delete review: {str(e)}") from e
 
 
-
-@app.get("/users/me/reviews", response_model=List[ReviewWithRestaurantInfo])
+@app.get("/users/me/reviews", response_model=list[ReviewWithRestaurantInfo])
 async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_current_user)):
     """
     Get all reviews by the current logged-in user, including the restaurant name.
@@ -646,7 +662,7 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
 
         restaurant_map = {}
         restaurant_refs = [db.collection("restaurants").document(rid) for rid in restaurant_ids]
-        
+
         fetched_restaurants = db.get_all(restaurant_refs)
         for doc in fetched_restaurants:
             if doc.exists:
@@ -656,10 +672,10 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
         for doc in review_docs:
             review_data = doc.to_dict()
             restaurant_id = review_data["restaurant_id"]
-            
+
             enhanced_reviews.append(
                 ReviewWithRestaurantInfo(
-                    id=doc.id, # Map to review_id in the Pydantic model
+                    id=doc.id,  # Map to review_id in the Pydantic model
                     restaurant_id=restaurant_id,
                     restaurant_name=restaurant_map.get(restaurant_id, "Deleted Restaurant"),
                     rating=review_data["rating"],
@@ -670,10 +686,12 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
 
         return enhanced_reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user's reviews: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch user's reviews: {str(e)}"
+        ) from e
 
 
-@app.get("/restaurants/{restaurant_id}/reviews", response_model=List[ReviewResponse])
+@app.get("/restaurants/{restaurant_id}/reviews", response_model=list[ReviewResponse])
 async def list_restaurant_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
@@ -749,8 +767,8 @@ async def create_restaurant(restaurant: Restaurant):
         raise HTTPException(status_code=500, detail=f"Failed to create restaurant: {str(e)}") from e
 
 
-@app.get("/restaurants", response_model=List[RestaurantResponse])
-async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, location: str = "NYC"):
+@app.get("/restaurants", response_model=list[RestaurantResponse])
+async def list_restaurants(limit: int = 20, cuisine_type: str | None = None, location: str = "NYC"):
     """Get all restaurants from local db (no authentication required for browsing)"""
 
     try:
@@ -761,8 +779,9 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, 
         #     if cuisine_type:
         #         query = query.where("cuisine_type", "==", cuisine_type)
 
-        #     query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
-
+        #     query = query.order_by(
+        #         "created_at", direction=firestore.Query.DESCENDING
+        #     ).limit(limit)
         #     restaurants = []
         #     for doc in query.stream():
         #         restaurant_data = doc.to_dict()
@@ -772,9 +791,9 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, 
         # except Exception as db_error:
         #     print(f"Firestore error: {db_error}. Falling back to Yelp.")
         #     # Fallback to Yelp
-        term = "restaurants"
-        if cuisine_type:
-            term = cuisine_type
+        # term = "restaurants"
+        # if cuisine_type:
+        #     term = cuisine_type
 
         yelp_results = await search_yelp(term="restaurants", location=location, limit=limit)
 
@@ -804,6 +823,7 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch restaurants: {str(e)}") from e
 
+
 # we don't need this
 # @app.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
 # async def get_restaurant(restaurant_id: str):
@@ -821,7 +841,8 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, 
 #     except HTTPException:
 #         raise
 #     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant: {str(e)}") from e
+#         raise HTTPException(status_code=500, detail=f"Failed to fetch restaurant:
+# {str(e)}") from e
 
 
 # @app.put("/restaurants/{restaurant_id}", response_model=RestaurantResponse)
@@ -860,7 +881,9 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, 
 #     except HTTPException:
 #         raise
 #     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Failed to update restaurant: {str(e)}") from e
+#         raise HTTPException(
+#             status_code=500, detail=f"Failed to update restaurant: {str(e)}"
+#             ) from e
 
 
 # @app.delete("/restaurants/{restaurant_id}")
@@ -889,4 +912,5 @@ async def list_restaurants(limit: int = 20, cuisine_type: Optional[str] = None, 
 #     except HTTPException:
 #         raise
 #     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Failed to delete restaurant: {str(e)}") from e
+#         raise HTTPException(status_code=500, detail=f"Failed to delete restaurant:
+# {str(e)}") from e
