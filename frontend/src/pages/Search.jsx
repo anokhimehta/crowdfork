@@ -32,7 +32,7 @@ export default function Search() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const suggestionsRef = useRef(null);
-    const [localPicks, setLocalPicks] = useState([]);
+    // const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
 
         useEffect(() => {
@@ -87,8 +87,25 @@ export default function Search() {
 
     useEffect(() => {
         loadRestaurants();
-        loadLocalPicks();
+        // loadLocalPicks();
     }, []);
+
+    const getRatingValue = (restaurant) => {
+        if (restaurant.rating) {
+            return restaurant.rating;
+        }
+        if (restaurant.description?.startsWith("Rating:")) {
+            return Number(restaurant.description.replace("Rating:", "").trim());
+        }
+        return null;
+    };
+
+    const starRating = (rating) => {
+        const fullStars = Math.round(rating);
+        const emptyStars = 5 - fullStars;
+
+        return '★'.repeat(fullStars) + '☆'.repeat(emptyStars);
+    };
 
     const loadRestaurants = async () => {
         setLoading(true);
@@ -103,20 +120,20 @@ export default function Search() {
         }
     };
 
-    const loadLocalPicks = async () => {
-        setLoading(true);
-        try {
-            const lat = 40.7128; // Example latitude for NYC
-            const lon = -74.0060; // Example longitude for NYC
-            const data = await api.getLocalPicks(lat, lon, 10);
-            setLocalPicks(data.businesses || []);
-        } catch (err) {
-            console.error(err);
-            setError(err.message || "Failed to load local picks");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // const loadLocalPicks = async () => {
+    //     setLoading(true);
+    //     try {
+    //         const lat = 40.7128; // Example latitude for NYC
+    //         const lon = -74.0060; // Example longitude for NYC
+    //         const data = await api.getLocalPicks(lat, lon, 10);
+    //         setLocalPicks(data.businesses || []);
+    //     } catch (err) {
+    //         console.error(err);
+    //         setError(err.message || "Failed to load local picks");
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
     
 
     const handleSearch = async (e) => {
@@ -263,9 +280,20 @@ export default function Search() {
                                     <p className="restaurant-location">
                                         {restaurant.cuisine_type || (restaurant.categories && restaurant.categories[0]?.title)} - {restaurant.address || (restaurant.location && restaurant.location.address1)}
                                     </p>
-                                    <p className="restaurant-review">
-                                        {restaurant.rating ? `Rating: ${restaurant.rating}` : "No rating yet"}
-                                    </p>
+                                    <div className="restaurant-rating">
+                                        {getRatingValue(restaurant) ? (
+                                            <>
+                                                <span className="rating-number">
+                                                    {getRatingValue(restaurant).toFixed(1)}
+                                                </span>
+                                                <span className="rating-stars">
+                                                    {starRating(getRatingValue(restaurant))}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            "No rating"
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
