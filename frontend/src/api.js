@@ -174,5 +174,16 @@ export const api = {
         return response.json();
     },
 
+    async getSimilarRestaurants(restaurantId, limit = 5) {
+        const params = new URLSearchParams({ limit });
+        const url = `${API_BASE_URL}/restaurants/similar/${restaurantId}?${params}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to fetch similar restaurants");
+        }
+        return response.json();
+    },
+
 
 };

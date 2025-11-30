@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useSearchParams  } from "react-router-dom";
 import axios from 'axios';
 import "./Search.css"; // Import the CSS file
 import logo from '../assets/logo.png';
@@ -23,6 +23,7 @@ base_api.interceptors.request.use((config) => {
 
 
 export default function Search() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchSuggestions, setSearchSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -34,16 +35,64 @@ export default function Search() {
     const suggestionsRef = useRef(null);
     // const [localPicks, setLocalPicks] = useState([]);
     const navigate = useNavigate();
-
-        useEffect(() => {
-        // If the user is NOT authenticated (token is missing or false)
-        if (typeof api.isAuthenticated() !== 'undefined' && !api.isAuthenticated()) {
-            // Redirect them to the login page immediately
-            navigate('/login');
-        }
-    }, [navigate]);
     const [coordinates, setCoordinates] = useState({ lat: null, lon: null });
     const [isUsingLocation, setIsUsingLocation] = useState(false);
+
+
+    // useEffect(() => {
+    //     // If the user is NOT authenticated (token is missing or false)
+    //     if (typeof api.isAuthenticated() !== 'undefined' && !api.isAuthenticated()) {
+    //         // Redirect them to the login page immediately
+    //         navigate('/login');
+    //     }
+    // }, [navigate]);
+
+     const performSearch = useCallback(async (term, loc) => {
+        if (!api.isAuthenticated()) { 
+            setError("Please log in to perform searches.");
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const data = await api.searchRestaurants(term, loc); 
+            setRestaurants(data.businesses || []);
+            
+            setSearchParams({ q: term, loc: loc });
+            
+        } catch (err) {
+            console.error(err);
+            setError("Search failed");
+            setRestaurants([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [setSearchParams]);
+    
+    useEffect(() => {
+        if (typeof api.isAuthenticated !== 'undefined' && !api.isAuthenticated()) {
+            navigate('/login');
+            return;
+        }
+
+        const query = searchParams.get('q');
+        const loc = searchParams.get('loc');
+        
+        if (query) {
+           
+            setSearchQuery(query);
+            setLocation(loc || "NYC");
+            performSearch(query, loc || "NYC");
+        } else {
+            
+            loadRestaurants();
+        }
+    }, [navigate, searchParams, performSearch]);
+
+
 
     //when user starts typing, show suggestions
     useEffect(() => {
@@ -134,6 +183,8 @@ export default function Search() {
     //         setLoading(false);
     //     }
     // };
+
+    
 
 
     const handleGeolocation = () => {
@@ -340,7 +391,7 @@ export default function Search() {
                             <div key=
                                 {restaurant.id} 
                                 className="restaurant-card"
-                                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                                onClick={() => navigate(`/restaurant/${restaurant.id}?fromQ=${encodeURIComponent(searchQuery)}&fromL=${encodeURIComponent(location)}`)}
                                 style={{ cursor: 'pointer' }}
                                 >
                                 <div className="restaurant-image" style={{ backgroundImage: `url(${restaurant.image_url || ''})` }} />
