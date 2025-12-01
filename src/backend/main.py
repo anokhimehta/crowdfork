@@ -118,7 +118,7 @@ async def create_an_account(user_data: SignUpSchema):
             {
                 "email": email,
                 "favorites": [],
-                # "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.utcnow().isoformat(),
                 # "image_url": image_url,
                 "name": name,
                 "tagline": tagline,
@@ -539,7 +539,7 @@ async def get_localpicks_restaurants(latitude: float, longitude: float, limit: i
             limit=limit,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ------- Helper function to verify restaurant existence ----------
@@ -559,7 +559,7 @@ async def verify_restaurant_exists(restaurant_id: str) -> bool:
 # -------------- Crud Operations for Reviews ----------------
 
 
-@app.post("/restaurants/{restaurant_id}/reviews", response_model=ReviewResponse)
+@app.post("/restaurant/{restaurant_id}/review", response_model=ReviewResponse)
 async def create_review(
     restaurant_id: str, review: ReviewCreate, current_user: dict = Depends(get_current_user)
 ) -> Any:
@@ -573,8 +573,32 @@ async def create_review(
         )
 
     # Check if restaurant exists
-    if not await verify_restaurant_exists(restaurant_id):
-        raise HTTPException(status_code=404, detail=f"Restaurant with ID {restaurant_id} not found")
+    # if not await verify_restaurant_exists(restaurant_id):
+    #     raise HTTPException(status_code=404, detail=f"Restaurant with ID {restaurant_id} not found")
+
+    # Check if restaurant exists, if not create it from Yelp data
+    try:
+        restaurant_ref = db.collection("restaurants").document(restaurant_id)
+        restaurant = restaurant_ref.get()
+        
+        if not restaurant.exists:
+            # Fetch from Yelp and create in Firestore
+            yelp_data = await get_business_details(restaurant_id)
+            address = ", ".join(yelp_data.location.get("display_address", []))
+            cuisine = yelp_data.categories[0].get("title", "Unknown") if yelp_data.categories else "Unknown"
+            
+            restaurant_ref.set({
+                "name": yelp_data.name,
+                "address": address,
+                "cuisine_type": cuisine,
+                "description": f"Rating: {yelp_data.rating}",
+                "phone": yelp_data.phone,
+                "image_url": yelp_data.image_url,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat(),
+            })
+    except Exception as e:
+        print(f"Error handling restaurant: {e}")
 
     # Validate rating
     if review.rating < 0 or review.rating > 5:
@@ -582,13 +606,13 @@ async def create_review(
 
     # Create review
     try:
-        review_data = {
-            "restaurant_id": restaurant_id,
-            "user_id": current_user["user_id"],
-            "rating": review.rating,
-            "text": review.text,
-            "created_at": datetime.utcnow().isoformat(),
-        }
+        # review_data = {
+        #     "restaurant_id": restaurant_id,
+        #     "user_id": current_user["user_id"],
+        #     "rating": review.rating,
+        #     "text": review.text,
+        #     "created_at": datetime.utcnow().isoformat(),
+        # }
 
         review_data = {
             "restaurant_id": restaurant_id,
@@ -612,7 +636,7 @@ async def create_review(
         raise HTTPException(status_code=500, detail=f"Failed to create review: {str(e)}") from e
 
 
-@app.delete("/reviews/{review_id}")
+@app.delete("/review/{review_id}")
 async def delete_review(review_id: str, current_user: dict = Depends(get_current_user)):
     """Delete a review (only the review author can delete)"""
 
@@ -691,7 +715,7 @@ async def list_user_reviews(limit: int = 10, current_user: dict = Depends(get_cu
         ) from e
 
 
-@app.get("/restaurants/{restaurant_id}/reviews", response_model=list[ReviewResponse])
+@app.get("/restaurant/{restaurant_id}/review", response_model=list[ReviewResponse])
 async def list_restaurant_reviews(
     restaurant_id: str, limit: int = 10, current_user: dict = Depends(get_current_user)
 ):
@@ -713,6 +737,10 @@ async def list_restaurant_reviews(
         reviews = []
         for doc in reviews_ref.stream():
             review_data = doc.to_dict()
+            user_doc = db.collection("users").document(review_data["user_id"]).get()
+            user_data = user_doc.to_dict() if user_doc.exists else {}
+            user_name = user_data.get("email") or user_data.get("name") or "Anonymous"
+            review_data["user_name"] = user_name
             reviews.append(ReviewResponse(id=doc.id, **review_data))
 
         return reviews

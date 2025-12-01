@@ -29,7 +29,7 @@ useEffect(() => {
       
       // Fetch restaurant details
       const restaurantResponse = await fetch(
-        `http://localhost:8000/restaurants/${restaurantId}`
+        `http://localhost:8000/yelp/restaurants/${restaurantId}`
       );
       if (restaurantResponse.ok) {
         const restaurant = await restaurantResponse.json();
@@ -87,31 +87,30 @@ useEffect(() => {
       return;
     }
     // const {restaurantId} = useParams();
-    // 2. Building the payload expected by FastAPI
-    // const payload = {
-    //   restaurant_id: restaurantId, //if we use const restaurantId, then we would need to pass the first param of the payload as:
-    //   //restaurantId and only that since it's JSON
-    //   overall_rating: overallRating,
-    //   food_rating: foodRating,
-    //   ambience_rating: ambienceRating,
-    //   service_rating: serviceRating,
-    //   experience,
-    //   recommended_dishes: recommendedDishes
-    //     ? recommendedDishes.split(",").map((s) => s.trim())
-    //     : [],
-    //   price_range: priceRange || null,
-    // };
-
     const payload = {
-        restaurant_id: restaurantId, //or restaurantId
-        rating: overallRating, 
-        text: experience,  
-    }
+      restaurant_id: restaurantId, //if we use const restaurantId, then we would need to pass the first param of the payload as:
+      //restaurantId and only that since it's JSON
+      rating: overallRating,
+      food_rating: foodRating,
+      ambience_rating: ambienceRating,
+      service_rating: serviceRating,
+      text : experience,
+      recommended_dishes: recommendedDishes
+        ? recommendedDishes.split(",").map((s) => s.trim())
+        : [],
+      price_range: priceRange || null,
+    };
+
+    // const payload = {
+    //     restaurant_id: restaurantId, //or restaurantId
+    //     rating: overallRating, 
+    //     text: experience,  
+    // }
 
     try {
       setSubmitting(true);
 
-      const response = await fetch(`http://localhost:8000/restaurants/${restaurantId}/reviews`, {
+      const response = await fetch(`http://localhost:8000/restaurant/${restaurantId}/review`, {
     //   const response = await fetch(`http://localhost:8000/reviews/${restaurantId}`, {
         //check the url
     //   const response = await fetch("http://localhost:8000/reviews", {
@@ -190,7 +189,7 @@ useEffect(() => {
             <div className="user-info">
                 <div className="user-avatar"></div>
                 <span className="user-name">
-                    {userData ? userData.email : "Anokhi Mehta"}</span>
+                    {userData ? userData.email : "Loading..."}</span>
             </div>
 
             {/* Review Form */}

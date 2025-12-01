@@ -9,6 +9,13 @@ readme = "README.md"
 # Dependencies required at runtime
 dependencies = [
     "requests>=2.31.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "firebase-admin>=6.2.0",
+    "pyrebase4>=4.7.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.25.0",
+    "setuptools>=68.0",
 ]
 
 # Dev dependencies installed via `uv sync --all-extras --dev`

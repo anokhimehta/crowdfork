@@ -16,6 +16,8 @@ export default function Restaurant() {
     const [error, setError] = useState(null);
     const [favoritesError, setFavoritesError] = useState(null);
     const [recs, setRecs] = useState([]);
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
 
     const handleGoBack = () => {
        const fromQuery = searchParams.get('fromQ');
@@ -31,22 +33,22 @@ export default function Restaurant() {
     };
 
 
-    const reviews = [
-        {
-            id: 1,
-            username: "foodie123",
-            rating: 5,
-            text: "Amazing food and great atmosphere! Highly recommend the pasta.",
-            date: "2024-06-15"
-        },
-        {
-            id: 2,
-            username: "gourmet_gal",
-            rating: 4,
-            text: "Delicious dishes but a bit pricey. Loved the dessert though!",
-            date: "2024-06-10"
-        }
-    ];
+    // const reviews = [
+    //     {
+    //         id: 1,
+    //         username: "foodie123",
+    //         rating: 5,
+    //         text: "Amazing food and great atmosphere! Highly recommend the pasta.",
+    //         date: "2024-06-15"
+    //     },
+    //     {
+    //         id: 2,
+    //         username: "gourmet_gal",
+    //         rating: 4,
+    //         text: "Delicious dishes but a bit pricey. Loved the dessert though!",
+    //         date: "2024-06-10"
+    //     }
+    // ];
 
     const formatTime = (t) => {
         const hour = parseInt(t.substring(0, 2));
@@ -97,6 +99,71 @@ export default function Restaurant() {
             console.error("Error checking favorite status:", err);
         }
     }, [id]);
+
+
+   const fetchReviews = useCallback(async () => {
+    try {
+        setReviewsLoading(true);
+        const token = localStorage.getItem("authToken");
+        
+        if (!token) {
+            console.log("No auth token, skipping review fetch");
+            setReviews([]);
+            return;
+        }
+
+        const response = await fetch(
+            `http://localhost:8000/restaurant/${id}/review`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (response.ok) {
+            const data = await response.json();
+            setReviews(data);
+        } else {
+            console.error("Failed to fetch reviews");
+            setReviews([]);
+        }
+    } catch (err) {
+        console.error("Error fetching reviews:", err);
+        setReviews([]);
+    } finally {
+        setReviewsLoading(false);
+    }
+}, [id]);
+
+// Update your useEffect to also fetch reviews (around line 122)
+useEffect(() => {
+    const fetchRestaurant = async () => {
+        try {
+            setLoading(true);
+            const data = await api.getYelpBusinessDetails(id);
+            setRestaurant(data);
+
+            const recData = await api.getSimilarRestaurants(id, 5);
+            setRecs(recData);
+
+            setError(null);
+        } catch (err) {
+            setError(err.message);
+            console.log("Error fetching restaurant data:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (id) {
+        fetchRestaurant();
+        checkFavoriteStatus();
+        fetchReviews(); // ✅ Add this
+    }
+}, [id, checkFavoriteStatus, fetchReviews]); // ✅ Add fetchReviews to dependencies
+
+
 
     const toggleFavorite = async () => {
 
@@ -186,7 +253,8 @@ export default function Restaurant() {
                         <button className="compare-button">Compare</button>
                         <button 
                             className="review-button" 
-                            onClick={() => navigate("/review")}
+                            onClick={() => navigate(`/restaurant/${restaurant.id}/review`)}
+
                             >Write a Review</button>  
                     </div>
                 </div>
@@ -255,10 +323,10 @@ export default function Restaurant() {
                         <div className="reviews-header">
                             <h2 className="reviews-title">User Reviews</h2>
                             <button className="add-review-button"
-                                onClick={() => navigate("/review")}
+                                onClick={() => navigate(`/restaurant/${restaurant.id}/review`)}
                                 >Add a Review</button>
                         </div>
-                        <div className="reviews-list">
+                        {/* <div className="reviews-list">
                             {reviews.map((review) => (
                                 <div key={review.id} className="review-card">
                                     <div className="review-header-line">
@@ -269,7 +337,39 @@ export default function Restaurant() {
                                     <span className="review-date">{review.date}</span>
                                 </div>
                             ))}
-                        </div>
+                        </div> */}
+
+
+<div className="reviews-list">
+    {reviewsLoading ? (
+        <p>Loading reviews...</p>
+    ) : reviews.length === 0 ? (
+        <p>No reviews yet. Be the first to review!</p>
+    ) : (
+        reviews.map((review) => (
+            <div key={review.id} className="review-card">
+                <div className="review-header-line">
+                    <span className="review-username">{review.user_name || review.user_id}</span>
+                    <StarRating rating={review.rating} />
+                </div>
+                <p className="review-text">{review.text}</p>
+                {review.recommended_dishes && review.recommended_dishes.length > 0 && (
+                    <p className="review-dishes">
+                        <strong>Recommended:</strong> {review.recommended_dishes.join(", ")}
+                    </p>
+                )}
+                {review.price_range && (
+                    <p className="review-price">
+                        <strong>Price:</strong> {review.price_range}
+                    </p>
+                )}
+                <span className="review-date">
+                    {new Date(review.created_at).toLocaleDateString()}
+                </span>
+            </div>
+        ))
+    )}
+</div>
 
                         {/* Recommendations Section */}
                         <div className="recommendations">

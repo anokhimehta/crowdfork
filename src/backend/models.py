@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional, List
 
 from pydantic import BaseModel, Field, confloat
 
@@ -42,6 +42,7 @@ class Review(BaseModel):
 
 
 class ReviewCreate(BaseModel):
+    restaurant_id: str
     rating: Annotated[float, confloat(ge=0, le=5)]  # overall rating
     food_rating: Annotated[float, confloat(ge=0, le=5)] | None = None
     ambience_rating: Annotated[float, confloat(ge=0, le=5)] | None = None
@@ -52,18 +53,18 @@ class ReviewCreate(BaseModel):
     recommended_dishes: list[str] = Field(default_factory=list)
     price_range: str | None = None
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "rating": 4,
-                "food_rating": 5,
-                "ambience_rating": 4,
-                "service_rating": 3,
-                "text": "Amazing place, loved the pasta!",
-                "recommended_dishes": ["Pesto Pasta", "Garlic Bread"],
-                "price_range": "$10 - $20",
-            }
-        }
+    # class Config:
+    #     json_schema_extra = {
+    #         "example": {
+    #             "rating": 4,
+    #             "food_rating": 5,
+    #             "ambience_rating": 4,
+    #             "service_rating": 3,
+    #             "text": "Amazing place, loved the pasta!",
+    #             "recommended_dishes": ["Pesto Pasta", "Garlic Bread"],
+    #             "price_range": "$10 - $20",
+    #         }
+    #     }
 
 
 # class ReviewResponse(BaseModel):
@@ -79,17 +80,14 @@ class ReviewResponse(BaseModel):
     id: str
     restaurant_id: str
     user_id: str
-
-    rating: float  # overall rating
-    food_rating: float | None = None
-    ambience_rating: float | None = None
-    service_rating: float | None = None
-
-    text: str | None = None
-
-    recommended_dishes: list[str] = []
-    price_range: str | None = None
-
+    user_name: Optional[str] = None
+    rating: float
+    text: Optional[str] = None
+    food_rating: Optional[float] = None
+    ambience_rating: Optional[float] = None
+    service_rating: Optional[float] = None
+    recommended_dishes: Optional[List[str]] = None
+    price_range: Optional[str] = None
     created_at: str
 
     # class Config:

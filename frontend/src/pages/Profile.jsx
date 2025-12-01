@@ -55,6 +55,10 @@ export default function Profile() {
     navigate('/saved');
   };
 
+  const handleViewReviews = () => {
+    navigate('/reviews');
+  };
+
     const handleSignOut = () => {
       localStorage.removeItem('authToken');
       navigate('/login');
@@ -89,7 +93,7 @@ export default function Profile() {
         // Map backend fields to frontend state fields
         const mappedUser = {
           id: userData.user_id,
-          name: userData.name || "User Name", // Use name if available
+          name: userData.name || userData.email?.split('@')[0] || "User", // Use name if available, fallback to email prefix
           email: userData.email,
           tagline: userData.tagline || "No tagline yet.", 
           location: userData.location || "Unknown",
@@ -208,7 +212,7 @@ export default function Profile() {
       <div className="profile-bio-section">
         {isEditing ? (
           <textarea
-            name="bio"
+            name="tagline"
             value={editData.tagline}
             onChange={handleEditChange}
             className="edit-textarea"
@@ -221,7 +225,7 @@ export default function Profile() {
 
 
       <div className="profile-stats">
-        <div className="stat-card">
+        <div className="stat-card" onClick={handleViewReviews} style={{ cursor: 'pointer' }}>
           <p className="stat-number">{user.reviewCount}</p>
           <p className="stat-label">Reviews</p>
         </div>
