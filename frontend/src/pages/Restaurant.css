@@ -532,11 +532,6 @@
     justify-content: stretch;
   }
   
-  .compare-button,
-  .your-review-button {
-    flex: 1;
-  }
-  
   .restaurant-detail-container {
     padding: 1rem;
   }

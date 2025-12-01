@@ -250,7 +250,6 @@ useEffect(() => {
                         >
                             {isFavorited ? "❤️" : "🤍"}
                         </button>
-                        <button className="compare-button">Compare</button>
                         <button 
                             className="review-button" 
                             onClick={() => navigate(`/restaurant/${restaurant.id}/review`)}
