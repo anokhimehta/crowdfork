@@ -199,6 +199,7 @@ async def list_user_favorite_ids(current_user: dict = Depends(get_current_user))
             status_code=500, 
             detail=f"Failed to fetch favorite IDs: {str(e)}"
         ) from e
+    
 @app.post("/favorites/{restaurant_id}")
 async def add_favorite_restaurant(
     restaurant_id: str, current_user: dict = Depends(get_current_user)
@@ -374,21 +375,35 @@ async def list_user_favorites(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch favorites: {str(e)}")
 # ------------------ Yelp API Integration ---------------------
 
-
 @app.get("/search/restaurants", response_model=YelpSearchResponse)
 async def search_restaurants_yelp(
     term: str = Query(..., description="Search term, e.g., 'pizza'"),
-    location: str = Query(..., description="Location, e.g., 'NYC' or 'San Francisco'"),
+    location: Optional[str] = Query(None, description="Location, e.g., 'NYC'"), 
+    latitude: Optional[float] = Query(None, description="Latitude"), 
+    longitude: Optional[float] = Query(None, description="Longitude") 
 ):
     """
-    Search for restaurants using the Yelp API.
+    Search for restaurants using the Yelp API. 
+    Accepts either a location string OR latitude/longitude.
     """
     try:
-        yelp_results = await search_yelp(term=term, location=location, limit=20)
+        # If no location and no coordinates are provided, default to NYC
+        if not location and (latitude is None or longitude is None):
+            location = "NYC"
+
+        if location == "Current Location" and (latitude is None or longitude is None):
+            location = "NYC"
+
+        yelp_results = await search_yelp(
+            term=term, 
+            location=location, 
+            latitude=latitude, 
+            longitude=longitude, 
+            limit=20
+        )
         return yelp_results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch from Yelp: {str(e)}") from e
-
 
 @app.get("/recommendations/nearby", response_model=YelpSearchResponse)
 async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
@@ -402,6 +417,70 @@ async def get_local_picks(latitude: float, longitude: float, limit: int = 10):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+    
+@app.get("/restaurants/similar/{restaurant_id}", response_model=List[dict])
+async def get_similar_restaurants(restaurant_id: str):
+    """
+    Get 3 similar restaurants. 
+    Prioritizes Lat/Lon, falls back to address text if cordinates are missing.
+    """
+    try:
+        source_restaurant = await get_business_details(restaurant_id)
+        
+        if not source_restaurant.categories:
+             # If no category, we can't really match "similar", so return empty
+            return []
+
+        # Obtain the category to search for reaturants of similar genre (e.g., "Pizza")
+        category_term = source_restaurant.categories[0].get("title", "")
+
+        # Extract Location Data for presise searching
+        lat = source_restaurant.coordinates.get("latitude")
+        lon = source_restaurant.coordinates.get("longitude")
+        
+        search_location = None
+
+        # Check if we have valid coordinates
+        if lat is None or lon is None:
+            # FALLBACK: Build a text address from the location dict. Use Yelps 'display_address' as a list like ["123 Main St", "New York, NY"]
+            address_list = source_restaurant.location.get("display_address", [])
+            if address_list:
+                search_location = ", ".join(address_list)
+            else:
+                # Ultimate fallback if restaurant has NO address and NO coords
+                search_location = "NYC" 
+        
+        # Search Yelp (If lat/lon are None, it uses search_location.)
+        search_results = await search_yelp(
+            term=category_term,
+            latitude=lat,
+            longitude=lon,
+            location=search_location,
+            limit=5, 
+            sort_by="rating"
+        )
+
+        # Filter out the original restaurant and return top 3
+        recommendations = []
+        for business in search_results.businesses:
+            if business.id != restaurant_id:
+                recommendations.append({
+                    "id": business.id,
+                    "name": business.name,
+                    "image_url": business.image_url,
+                    "rating": business.rating,
+                    "price": getattr(business, "price", None),
+                    "review_count": business.review_count
+                })
+                
+            if len(recommendations) >= 3:
+                break
+        
+        return recommendations
+
+    except Exception as e:
+        print(f"Error fetching similar restaurants: {e}")
+        return []
 
 
 @app.get("/autocomplete/restaurants", response_model=YelpAutocompleteResponse)
