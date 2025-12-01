@@ -183,7 +183,6 @@ export default function Restaurant() {
                         >
                             {isFavorited ? "❤️" : "🤍"}
                         </button>
-                        <button className="compare-button">Compare</button>
                         <button 
                             className="review-button" 
                             onClick={() => navigate("/review")}
