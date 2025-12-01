@@ -41,12 +41,22 @@
   outline: none;
   font-size: 15px;
   transition: box-shadow 120ms ease, border-color 120ms ease;
+  color: #111;
 }
 
 .cf-input:focus {
   border-color: #2e3c8b;
   box-shadow: 0 0 0 3px rgba(46, 60, 139, 0.15);
 }
+
+input:-webkit-autofill {
+  -webkit-text-fill-color: #111 !important;
+}
+
+.cf-input::placeholder {
+  color: #888;
+}
+
 
 /* error text */
 .cf-error {

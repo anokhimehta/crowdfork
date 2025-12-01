@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -41,55 +41,56 @@ class YelpBusiness(BaseModel):
     rating: float
     phone: str
     display_phone: str
-    distance: Optional[float] = None
-    coordinates: Dict[str, float]
-    location: Dict[str, Any]
-    url: Optional[str] = None
-    categories: List[Dict[str, str]] = []
+    distance: float | None = None
+    coordinates: dict[str, float]
+    location: dict[str, Any]
+    url: str | None = None
+    categories: list[dict[str, str]] = []
 
 
 # Response model for Yelp search
 class YelpSearchResponse(BaseModel):
-    businesses: List[YelpBusiness]
+    businesses: list[YelpBusiness]
     total: int
-    region: Dict[str, Any]
+    region: dict[str, Any]
 
 
 # Response model for Yelp autocomplete
 class YelpAutocompleteResponse(BaseModel):
-    terms: List[Dict[str, str]]
-    businesses: List[Dict[str, Any]]
-    categories: List[Dict[str, Any]]
+    terms: list[dict[str, str]]
+    businesses: list[dict[str, Any]]
+    categories: list[dict[str, Any]]
 
 
 # Yelp Business Detail model
 class YelpBusinessDetail(BaseModel):
     id: str
     name: str
-    image_url: Optional[str] = None
-    url: Optional[str] = None
+    image_url: str | None = None
+    url: str | None = None
     phone: str = ""
     display_phone: str = ""
     review_count: int
-    categories: List[Dict[str, Any]] = []
+    categories: list[dict[str, Any]] = []
     rating: float
-    location: Dict[str, Any]
-    coordinates: Dict[str, float]
-    photos: List[str] = [] # Multiple photos!
-    price: Optional[str] = None
-    hours: List[Dict[str, Any]] = []
-    is_closed: bool 
+    location: dict[str, Any]
+    coordinates: dict[str, float]
+    photos: list[str] = []  # Multiple photos!
+    price: str | None = None
+    hours: list[dict[str, Any]] = []
+    is_closed: bool
+
 
 # Function to search Yelp API
 async def search_yelp(
-        term: str | None = None,
-        location: str | None = None, 
-        latitude: float | None = None,
-        longitude: float | None = None,
-        sort_by: str | None = None,
-        attributes: str | None = None,
-        limit: int = 10) -> YelpSearchResponse:
-    
+    term: str | None = None,
+    location: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    sort_by: str | None = None,
+    attributes: str | None = None,
+    limit: int = 10,
+) -> YelpSearchResponse:
     url = f"{YELP_API_HOST}{SEARCH_PATH}"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
 
@@ -113,8 +114,11 @@ async def search_yelp(
     data = response.json()
     return YelpSearchResponse(**data)
 
+
 # Function to autocomplete Yelp API
-async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitude: Optional[float] = None) -> YelpAutocompleteResponse:
+async def autocomplete_yelp(
+    text: str, latitude: float | None = None, longitude: float | None = None
+) -> YelpAutocompleteResponse:
     url = f"{YELP_API_HOST}{AUTOCOMPLETE_PATH}"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
 
@@ -128,8 +132,9 @@ async def autocomplete_yelp(text: str, latitude: Optional[float] = None, longitu
         response = await client.get(url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
-    return YelpAutocompleteResponse(**data)  
-   
+    return YelpAutocompleteResponse(**data)
+
+
 # Function to get business details by ID
 async def get_business_details(yelp_id: str) -> YelpBusinessDetail:
     """
@@ -138,7 +143,7 @@ async def get_business_details(yelp_id: str) -> YelpBusinessDetail:
     """
     if not YELP_API_KEY:
         raise Exception("YELP_API_KEY is not configured.")
-        
+
     # Endpoint: /v3/businesses/{id}
     url = f"{YELP_API_HOST}{BUSINESS_DETAILS_PATH}/{yelp_id}?locale=en_US"
     headers = {"Authorization": f"Bearer {YELP_API_KEY}"}
@@ -152,12 +157,12 @@ async def get_business_details(yelp_id: str) -> YelpBusinessDetail:
             if not data.get("photos") or len(data["photos"]) == 0:
                 if data.get("image_url"):
                     data["photos"] = [data["image_url"]]
-                    
+
             return YelpBusinessDetail(**data)
         except Exception as e:
             print(f"Yelp Detail Error: {e}")
             raise e
-        
+
 
 # Example usage
 if __name__ == "__main__":
