@@ -3,6 +3,7 @@ pyproject.toml
 src/backend/firebaseconfig.py
 src/backend/main.py
 src/backend/models.py
+src/backend/yelp_api_client.py
 src/cf/__init__.py
 src/cf/main.py
 src/crowdfork.egg-info/PKG-INFO
