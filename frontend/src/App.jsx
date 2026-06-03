@@ -8,6 +8,9 @@ import Restaurant from './pages/Restaurant'
 import Profile from './pages/Profile'
 import Saved from './pages/Saved'
 import './App.css'
+import Reviews from './pages/Reviews';
+
+
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -26,13 +29,15 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/search" element={<Search />} />
-      <Route path="/review" element={<ReviewForm />} />
+      {/* <Route path="/review" element={<ReviewForm />} /> */}
+      <Route path="/restaurant/:restaurantId/review" element={<ReviewForm />} />
       {/* would we need to pass restaurant_id as an argument for ReviewForm? */}
       {/* as in       <ReviewForm restaurantId={restaurantId} /> */}
       <Route path="/restaurant/:id" element={<Restaurant />} />
       {/* we also need to pass restaurant_id in the URL since the get restaurant needs an id  */}
       <Route path="/saved" element={<Saved />} />
       <Route path="/profile" element={<Profile />} />
+<Route path="/reviews" element={<Reviews />} />
     </Routes>
   );
 }

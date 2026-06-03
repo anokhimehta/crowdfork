@@ -1,0 +1,117 @@
+.reviews-page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.reviews-title {
+    font-size: 2rem;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.no-reviews-message {
+    text-align: center;
+    color: #666;
+    font-size: 1.2rem;
+    margin-top: 50px;
+}
+
+.reviews-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.review-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.review-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.restaurant-name {
+    font-size: 1.3rem;
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.delete-review-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+
+.delete-review-btn:hover {
+    transform: scale(1.2);
+}
+
+.review-text {
+    color: #555;
+    line-height: 1.6;
+    margin: 15px 0;
+}
+
+.review-dishes, .review-price {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 8px 0;
+}
+
+.review-ratings-detail {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.review-ratings-detail span {
+    font-size: 0.9rem;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.review-date {
+    font-size: 0.85rem;
+    color: #999;
+    display: block;
+    margin-top: 10px;
+}
+
+.star-rating-small {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.star-rating-small span {
+    color: #ddd;
+    font-size: 1rem;
+}
+
+.star-rating-small span.filled {
+    color: #ffa500;
+}
+
+.error-message {
+    color: #d32f2f;
+    text-align: center;
+}
